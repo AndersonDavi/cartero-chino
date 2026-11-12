@@ -10,6 +10,7 @@ import { applyEdit, type EditOp } from './core/editar';
 import { C, MapView, type EditTool, type Fondo, type Layers, type MapApi, type View } from './map/MapView';
 import { TableroView } from './ui/TableroView';
 import { Teoria, EXPLICAR } from './ui/Teoria';
+import { Guia } from './ui/Guia';
 import { fmt, fromMs, toMs, type Unit } from './ui/format';
 import { Lugar, type Punto } from './ui/Lugar';
 import { exportProject, fileName, importProject, makeProject, parseProject, type Proyecto } from './ui/proyecto';
@@ -45,6 +46,12 @@ const ALL: Layers ={ grafo: true, impares: true, parejas: true, duplicadas: true
 
 export default function App() {
   const [view, setView] = useState<View>('plano');
+  const [guia, setGuia] = useState(() => location.hash === '#teoria');
+  // la guía se puede abrir directo con #teoria en la dirección
+  const abrirGuia = (on: boolean) => {
+    setGuia(on);
+    history.replaceState(null, '', on ? '#teoria' : location.pathname + location.search);
+  };
   const [area, setArea] = useState<number[][] | null>(null);
   const [drawMode, setDrawMode] = useState<'rectangle' | 'polygon' | null>(null);
   const [options, setOptions] = useState<BuildOptions>(defaultBuildOptions);
@@ -610,6 +617,8 @@ export default function App() {
         />
       )}
 
+      {guia && <Guia onClose={() => abrirGuia(false)} />}
+
       <nav className="vistas">
         {VIEWS.map((v) => (
           <button
@@ -623,6 +632,9 @@ export default function App() {
             {v.label}
           </button>
         ))}
+        <button className={guia ? 'on' : ''} onClick={() => abrirGuia(true)} title="Teoría y fórmulas del cartero chino">
+          Teoría
+        </button>
         <button
           className="fondo-rapido"
           onClick={() => setFondo(fondo === 'completo' ? 'minimo' : fondo === 'minimo' ? 'ninguno' : 'completo')}

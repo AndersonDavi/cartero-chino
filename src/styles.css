@@ -341,3 +341,46 @@ html.proyector .leyenda { zoom: 1.3; }
 .lugar-orden button { width: 26px; height: 30px; padding: 0 !important; font-size: 14px !important; }
 .vistas .fondo-rapido { border-left: 1px solid var(--line) !important; border-radius: 0 999px 999px 0 !important; margin-left: 4px; font-size: 13px; opacity: 0.9; }
 @media (max-width: 799px) { .vistas .fondo-rapido { display: none; } }
+
+/* --- guía de teoría (pantalla completa, para exponer) --- */
+.guia { position: fixed; inset: 0; z-index: 50; background: var(--bg); overflow-y: auto; }
+.guia-in { max-width: 880px; margin: 0 auto; padding: 24px 20px 80px; line-height: 1.6; font-size: 17px; }
+.g-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.g-head h1 { margin: 0; font-size: 30px; }
+.g-head p { margin: 4px 0 0; color: var(--muted); }
+.g-cerrar { border: 1px solid var(--line); background: var(--chip); border-radius: 999px; width: 40px; height: 40px; cursor: pointer; font-size: 18px; flex: none; }
+.g-indice { position: sticky; top: -24px; z-index: 1; display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 0; margin: 12px 0 8px; background: var(--bg); border-bottom: 1px solid var(--line); }
+.g-indice button { border: 1px solid var(--line); background: var(--chip); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-size: 14px; }
+.guia section { scroll-margin-top: 70px; padding-top: 8px; }
+.guia h2 { font-size: 23px; margin: 28px 0 8px; }
+.guia h3 { font-size: 18px; margin: 22px 0 4px; color: var(--accent); }
+.g-formula { border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin: 8px 0 12px; background: var(--chip); }
+.g-tex { position: relative; overflow-x: auto; overflow-y: hidden; font-size: 1.15em; }
+.g-tex .katex-display { margin: 6px 0; }
+.g-num { position: absolute; right: 0; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15px; }
+.g-lee { margin: 6px 0; padding: 8px 12px; border-radius: 8px; background: var(--bg); border-left: 4px solid var(--accent); }
+.g-que p { margin: 6px 0 0; }
+.g-tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin: 12px 0; }
+.g-tarjetas.g-dos { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.g-tarjetas div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; display: flex; flex-direction: column; }
+.g-tarjetas span { color: var(--muted); font-size: 15px; }
+.g-pasos li { margin: 6px 0; }
+.g-clave { padding: 10px 14px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.g-svg { width: 100%; height: auto; display: block; margin: 8px 0; }
+.g-txt { fill: var(--fg); font-size: 14px; }
+.g-txt text { fill: var(--fg); }
+.g-fuerte { font-weight: 600; font-size: 15px; }
+.g-vtx { fill: #fff; font-size: 13px; font-weight: 600; }
+.g-scroll { overflow-x: auto; }
+.g-tabla { border-collapse: collapse; width: 100%; font-size: 15px; margin: 8px 0; }
+.g-tabla th, .g-tabla td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; white-space: nowrap; }
+.g-tabla th { color: var(--muted); font-weight: 600; }
+.g-mejor td { font-weight: 600; color: var(--start); }
+.g-faq dt { font-weight: 600; margin-top: 14px; }
+.g-faq dd { margin: 4px 0 0; }
+html.proyector .guia-in { zoom: 1.25; }
+@media (max-width: 799px) {
+  .guia-in { padding: 16px 16px 60px; font-size: 16px; }
+  .g-head h1 { font-size: 24px; }
+  .g-num { position: static; transform: none; display: block; text-align: right; }
+}

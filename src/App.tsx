@@ -16,7 +16,7 @@ import { Lugar, type Punto } from './ui/Lugar';
 import { exportProject, fileName, importProject, makeProject, parseProject, type Proyecto } from './ui/proyecto';
 import { driveConfigured, listDrive, openFromDrive, saveToDrive, type DriveFile } from './services/drive';
 import type { DownloadProgress } from './core/overpass';
-import type { Source, WorkerRequest, WorkerResponse } from './worker/solver.worker';
+import type { Sector, Source, WorkerRequest, WorkerResponse } from './worker/solver.worker';
 
 /** Barrio con su límite oficial: nombre, localidad y anillo [lon, lat]. */
 interface Barrio {
@@ -115,6 +115,8 @@ export default function App() {
   // barrios oficiales de Barranquilla (POT): se cargan la primera vez que se abre la lista
   const [barrios, setBarrios] = useState<Barrio[] | null>(null);
   const [barrio, setBarrio] = useState('');
+  const [carteros, setCarteros] = useState(1); // varios carteros: el área se reparte en sectores
+  const [sectores, setSectores] = useState<Sector[] | null>(null);
   const autoSolve = useRef(false); // al elegir un barrio: preparar el grafo y calcular la ruta de una vez
   const cargarBarrios = () => {
     if (barrios) return;
@@ -150,6 +152,7 @@ export default function App() {
         setStats(m.stats); // una edición: el grafo ya está en pantalla, solo cambian los números
       } else if (m.type === 'graph') {
         setBusy(null);
+        setSectores(null);
         setFitKey((k) => k + 1);
         setUndo([]);
         setGraph(m.graph);
@@ -185,8 +188,13 @@ export default function App() {
       } else if (m.type === 'path') {
         setBusy(null);
         setPathResult(m);
+      } else if (m.type === 'sectores') {
+        setBusy(null);
+        setSolution(null);
+        setSectores(m.sectores);
       } else if (m.type === 'solution') {
         setBusy(null);
+        setSectores(null);
         setSolution(m.solution);
         if (m.notice) flashRef.current(m.notice);
         if (m.excluded?.length) {
@@ -494,9 +502,15 @@ export default function App() {
   useEffect(() => {
     if (!graph || !autoSolve.current) return;
     autoSolve.current = false;
-    send({ type: 'solve', start: 0, freeMove }, 'Calculando la ruta del cartero…');
+    calcular(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graph]);
+
+  // un cartero: ruta óptima; varios: se reparte el área y se calcula la ruta de cada uno
+  const calcular = (st = start) =>
+    carteros > 1
+      ? send({ type: 'sectores', k: carteros }, `Repartiendo entre ${carteros} carteros…`)
+      : send({ type: 'solve', start: st, freeMove: freeMove && !isExample }, 'Calculando…');
 
   const elegirBarrio = (nombre: string) => {
     const b = barrios?.find((x) => x.n === nombre);
@@ -607,6 +621,7 @@ export default function App() {
         area={area}
         graph={viewGraph}
         dropped={dropped}
+        sectores={sectores && sectores.map((s, i) => ({ color: COLORES[i % COLORES.length], lines: s.lines, repeated: s.repeated }))}
         solution={solution}
         steps={route.steps}
         start={start}
@@ -1077,9 +1092,21 @@ export default function App() {
                 área (como Google Maps)
               </label>
             )}
-            <button className="primario" disabled={!graph || !!busy} onClick={() => send({ type: 'solve', start, freeMove: freeMove && !isExample }, 'Calculando…')}>
-              Calcular ruta óptima
+            <label className="carteros">
+              Carteros
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={carteros}
+                onChange={(e) => setCarteros(Math.max(1, Math.min(20, Math.round(Number(e.target.value)) || 1)))}
+              />
+              <span className="ayuda">{carteros > 1 ? 'el área se reparte en sectores parejos, uno por cartero' : 'uno solo recorre todo'}</span>
+            </label>
+            <button className="primario" disabled={!graph || !!busy} onClick={() => calcular()}>
+              {carteros > 1 ? `Repartir entre ${carteros} carteros` : 'Calcular ruta óptima'}
             </button>
+            {sectores && <TablaSectores sectores={sectores} speed={estimate.speed} />}
             {reproductor}
           </section>
           </>
@@ -1309,3 +1336,48 @@ function NavBar(p: {
     </div>
   );
 }
+
+// un color por cartero (se distinguen bien en el mapa claro y en el satelital)
+const COLORES = ['#2563eb', '#dc2626', '#16a34a', '#9333ea', '#ea580c', '#0891b2', '#ca8a04', '#db2777', '#4f46e5', '#65a30d'];
+
+function duracion(seg: number) {
+  const min = Math.round(seg / 60);
+  return min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${min % 60} min`;
+}
+
+/** Lo que recorre cada cartero y cuánto se demora; la vuelta más larga es la que manda. */
+function TablaSectores({ sectores, speed }: { sectores: Sector[]; speed: number }) {
+  const max = Math.max(...sectores.map((s) => s.total));
+  const total = sectores.reduce((a, s) => a + s.total, 0);
+  return (
+    <div className="sectores">
+      <p className="dato">
+        Todos terminan en <b>{duracion(max / speed)}</b> (la vuelta más larga). Entre todos recorren {fmt(total)}.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Cartero</th>
+            <th>Calles</th>
+            <th>Recorre</th>
+            <th>Tiempo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sectores.map((s, i) => (
+            <tr key={i} className={s.total === max ? 'max' : ''}>
+              <td>
+                <i style={{ background: COLORES[i % COLORES.length] }} /> {i + 1}
+              </td>
+              <td>{fmt(s.base)}</td>
+              <td>{fmt(s.total)}</td>
+              <td>{duracion(s.total / speed)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="ayuda">Dividir el área de forma óptima es NP-difícil: los sectores salen de una heurística (k-medias y crecimiento por el grafo). La ruta de cada cartero sí es la óptima de su sector.</p>
+    </div>
+  );
+}
+

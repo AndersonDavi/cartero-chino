@@ -403,6 +403,12 @@ export function Guia({ onClose }: { onClose: () => void }) {
               Toda ruta pasa por cada calle (al menos W(G)) y lo que se repite une impares de dos en dos (al menos el emparejamiento mínimo). La app logra exactamente
               esa suma, así que nada puede ser más corto.
             </dd>
+            <dt>¿Y si son varios carteros?</dt>
+            <dd>
+              Es el problema de los k carteros: k es el número de carteros, como la n de «n elementos». Se reparte el área en k sectores parejos y cada uno hace el
+              cartero chino en el suyo; lo que importa es que la vuelta más larga sea corta. Repartir de forma óptima es NP-difícil, así que la app usa una heurística
+              (k-medias y crecimiento por el grafo). En la app: elige el número de carteros antes de calcular.
+            </dd>
             <dt>¿Y las calles de un solo sentido?</dt>
             <dd>El modelo es no dirigido. La versión dirigida se resuelve con flujo de costo mínimo y queda como trabajo futuro.</dd>
             <dt>¿De dónde salen las calles?</dt>

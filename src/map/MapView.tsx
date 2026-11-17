@@ -47,6 +47,7 @@ interface Props {
   points: { label: string; p: LatLon; role: 'inicio' | 'medio' | 'fin' }[]; // paradas de la ruta
   pickPoint: boolean;
   onPickPoint(p: LatLon): void;
+  sectores: { color: string; lines: LatLon[][]; repeated: LatLon[][] }[] | null; // varios carteros: un color por sector
 }
 
 const STYLE = 'https://tiles.openfreemap.org/styles/liberty';
@@ -474,6 +475,14 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
     src('area').setData(fc(ring ? [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } }] : []));
   }, [ready, props.area]);
 
+  // --- varios carteros ---
+  useEffect(() => {
+    if (!ready || !loaded.current) return;
+    const ss = props.sectores ?? [];
+    src('sectores').setData(fc(ss.flatMap((s) => s.lines.map((l) => line(l, { color: s.color })))));
+    src('sectores-rep').setData(fc(ss.flatMap((s) => s.repeated.map((l) => line(l, { color: s.color })))));
+  }, [ready, props.sectores]);
+
   // --- grafo ---
   useEffect(() => {
     if (!ready || !loaded.current) return;
@@ -626,7 +635,7 @@ function graphData(g: Graph) {
 
 function addOverlay(m: MlMap) {
   const empty = fc([]);
-  for (const id of ['area', 'dropped', 'edges', 'dups', 'matching', 'route', 'route-current', 'vertices', 'giros', 'drag', 'snap', 'preview', 'trace', 'trace-preview', 'trace-pts']) {
+  for (const id of ['area', 'dropped', 'edges', 'dups', 'matching', 'route', 'route-current', 'vertices', 'giros', 'drag', 'snap', 'preview', 'trace', 'trace-preview', 'trace-pts', 'sectores', 'sectores-rep']) {
     m.addSource(id, { type: 'geojson', data: empty });
   }
   const font = ['Noto Sans Bold'];
@@ -664,6 +673,25 @@ function addOverlay(m: MlMap) {
       'line-color': C.dup,
       'line-width': ['interpolate', ['linear'], ['zoom'], 12, 1.5, 16, 3.5, 19, 6],
       'line-offset': ['interpolate', ['linear'], ['zoom'], 12, 1.5, 16, 5, 19, 9],
+    },
+  });
+  // varios carteros: las calles de cada sector con su color y, punteado, lo que ese cartero repite
+  m.addLayer({
+    id: 'sectores',
+    type: 'line',
+    source: 'sectores',
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': ['get', 'color'], 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 2, 16, 5, 19, 9], 'line-opacity': 0.85 },
+  });
+  m.addLayer({
+    id: 'sectores-rep',
+    type: 'line',
+    source: 'sectores-rep',
+    paint: {
+      'line-color': ['get', 'color'],
+      'line-width': ['interpolate', ['linear'], ['zoom'], 12, 1, 16, 2.5, 19, 4],
+      'line-offset': ['interpolate', ['linear'], ['zoom'], 12, 1.5, 16, 5, 19, 9],
+      'line-dasharray': [1.5, 1.2],
     },
   });
   const routePaint = {

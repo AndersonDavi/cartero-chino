@@ -8,13 +8,25 @@ import { indexTurns, type TurnIndex } from '../core/turns';
 import { fetchOverpass, type DownloadProgress } from '../core/overpass';
 import type { Adjacency, Graph, LatLon } from '../core/types';
 import zonas from '../data/zonas.json';
+import { sectorizar, subgrafoAristas } from '../core/sectores';
 
 export type Source = 'auto' | 'overpass';
+
+/** Un sector de "varios carteros": sus calles y la ruta del cartero que lo recorre. */
+export interface Sector {
+  lines: LatLon[][]; // calles del sector
+  repeated: LatLon[][]; // tramos que ese cartero repite o usa para moverse
+  base: number; // Σ w(E) del sector
+  total: number; // recorrido del cartero
+  streets: number; // cuántas calles tiene
+  start: LatLon;
+}
 
 export type WorkerRequest =
   | { type: 'build'; ring: number[][]; options: BuildOptions; source: Source }
   | { type: 'load'; graph: Graph; edit?: boolean }
   | { type: 'solve'; start: number; freeMove?: boolean }
+  | { type: 'sectores'; k: number }
   | { type: 'route'; points: LatLon[]; vehicle: boolean; roundTrip: boolean; optimize?: boolean; fixEnd?: boolean }
   | { type: 'path'; id: number; from: LatLon; to: LatLon }
   | { type: 'trace'; id: number; from: LatLon | null; to: LatLon; preview: boolean }
@@ -25,6 +37,7 @@ export type WorkerResponse =
   | { type: 'error'; msg: string }
   | { type: 'graph'; graph: Graph; dropped: Graph['edges']; stats: ReturnType<typeof stats>; origin: string; edit?: boolean }
   | { type: 'solution'; solution: ReturnType<typeof solveCPP>; excluded?: string[]; notice?: string }
+  | { type: 'sectores'; sectores: Sector[] }
   | { type: 'path'; id: number; geometry: LatLon[] | null; length: number }
   | { type: 'trace'; id: number; preview: boolean; point: LatLon; edges: number[]; geometry: LatLon[] }
   | { type: 'route'; graph: Graph; solution: ReturnType<typeof solveCPP>; stats: ReturnType<typeof stats> };
@@ -127,6 +140,31 @@ onmessage = async (ev: MessageEvent<WorkerRequest>) => {
       });
       current = graph;
       post({ type: 'route', graph, solution, stats: stats(graph) });
+    } else if (req.type === 'sectores') {
+      if (!current) throw new Error('Primero genera el grafo');
+      const g = current;
+      progress(`Repartiendo las calles entre ${req.k} carteros…`);
+      const sector = sectorizar(g, req.k);
+      const adj = adjacency(g);
+      const out: Sector[] = [];
+      for (let c = 0; c < req.k; c++) {
+        const edges = sector.flatMap((s, i) => (s === c ? [i] : []));
+        if (!edges.length) continue;
+        progress(`Cartero ${c + 1} de ${req.k}: calculando su ruta…`);
+        const { graph: sub, toParent } = subgrafoAristas(g, edges);
+        // cada cartero puede pasar por calles de los otros sectores para moverse
+        const sol = solveCPPFree(sub, 0, g, adj, toParent);
+        const rg = sol.routeGraph ?? sub;
+        out.push({
+          lines: sub.edges.map((e) => e.geometry),
+          repeated: sol.circuit.filter((st) => st.repeat || rg.edges[st.edge].extra).map((st) => rg.edges[st.edge].geometry),
+          base: sol.baseLength,
+          total: sol.totalLength,
+          streets: sub.edges.length,
+          start: [sub.vertices[0].lat, sub.vertices[0].lon],
+        });
+      }
+      post({ type: 'sectores', sectores: out });
     } else if (req.type === 'solve') {
       if (!current) throw new Error('Primero genera el grafo');
       // moverse también por calles de fuera del área (cartero "rural"), si se puede ubicar cada vértice en la ciudad

@@ -18,6 +18,13 @@ import { driveConfigured, listDrive, openFromDrive, saveToDrive, type DriveFile 
 import type { DownloadProgress } from './core/overpass';
 import type { Source, WorkerRequest, WorkerResponse } from './worker/solver.worker';
 
+/** Barrio con su límite oficial: nombre, localidad y anillo [lon, lat]. */
+interface Barrio {
+  n: string;
+  l: string;
+  r: number[][];
+}
+
 interface Busy {
   msg: string;
   download?: DownloadProgress;
@@ -105,6 +112,17 @@ export default function App() {
   const pendingSolution = useRef<Solution | null>(null);
   const pendingStart = useRef<LatLon | null>(null); // al trazar: la ruta empieza en el primer punto marcado
   const exampleRef = useRef(false);
+  // barrios oficiales de Barranquilla (POT): se cargan la primera vez que se abre la lista
+  const [barrios, setBarrios] = useState<Barrio[] | null>(null);
+  const [barrio, setBarrio] = useState('');
+  const autoSolve = useRef(false); // al elegir un barrio: preparar el grafo y calcular la ruta de una vez
+  const cargarBarrios = () => {
+    if (barrios) return;
+    fetch(`${import.meta.env.BASE_URL}data/barrios-barranquilla.json`)
+      .then((r) => r.json())
+      .then(setBarrios)
+      .catch(() => setError('No se pudo cargar la lista de barrios'));
+  };
   const [isExample, setIsExample] = useState(false); // ejemplos de clase: coordenadas de mentira
 
   const mapApi = useRef<MapApi>(null);
@@ -473,7 +491,25 @@ export default function App() {
     if (solution) setSolution(rotateSolution(solution, v));
   };
 
+  useEffect(() => {
+    if (!graph || !autoSolve.current) return;
+    autoSolve.current = false;
+    send({ type: 'solve', start: 0, freeMove }, 'Calculando la ruta del cartero…');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [graph]);
+
+  const elegirBarrio = (nombre: string) => {
+    const b = barrios?.find((x) => x.n === nombre);
+    if (!b) return;
+    onArea(b.r);
+    setBarrio(b.n);
+    setName(`Barrio ${b.n}`);
+    autoSolve.current = true;
+    send({ type: 'build', ring: b.r, options, source }, `Preparando las calles de ${b.n}…`);
+  };
+
   const onArea = (ring: number[][]) => {
+    setBarrio('');
     setArea(ring);
     setDrawMode(null);
     setGraph(null);
@@ -906,6 +942,28 @@ export default function App() {
                 </optgroup>
               </select>
             </div>
+            <div className="fila barrio">
+              <select
+                value={barrio}
+                onFocus={cargarBarrios}
+                onPointerDown={cargarBarrios}
+                onChange={(e) => elegirBarrio(e.target.value)}
+                disabled={!!busy}
+                aria-label="Barrio de Barranquilla"
+              >
+                <option value="">{barrios ? `Barrio de Barranquilla (${barrios.length})…` : 'Barrio de Barranquilla…'}</option>
+                {barrios?.map((b) => (
+                  <option key={b.n} value={b.n}>
+                    {b.n}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {barrio && (
+              <p className="ayuda">
+                Límite oficial del POT (Alcaldía de Barranquilla, datos.gov.co, CC BY-SA 4.0). Se calcula la ruta que recorre todas las calles del barrio.
+              </p>
+            )}
             {trace && (
               <div className="trazado">
                 <p className="ayuda">

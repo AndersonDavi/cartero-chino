@@ -25,4 +25,4 @@ Para guardar en Google Drive, copia `.env.example` como `.env.local` y pon tu ID
 - `public/data/calles-atlantico.json`: calles de Barranquilla y Soledad ya descargadas (se regeneran con `scripts/calles.ts`), para no depender de Overpass.
 - `public/demo/`: demo pequeña de El Prado.
 
-Datos de calles © colaboradores de OpenStreetMap (ODbL). Teselas de OpenFreeMap; imágenes satelitales © Esri.
+Datos de calles © colaboradores de OpenStreetMap (ODbL). Límites de los 181 barrios de Barranquilla: «Barrios de Barranquilla según POT», Alcaldía de Barranquilla, [datos.gov.co qui6-qeux](https://www.datos.gov.co/d/qui6-qeux) (CC BY-SA 4.0); la versión simplificada en `public/data/barrios-barranquilla.json` se comparte con la misma licencia. Teselas de OpenFreeMap; imágenes satelitales © Esri.

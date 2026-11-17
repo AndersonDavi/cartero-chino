@@ -754,3 +754,11 @@ html.proyector .guia-in { zoom: 1.25; }
 @keyframes esqueleto { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 @media (prefers-reduced-motion: reduce) { .sk-icono, .sk-lineas span { animation: none; } }
 .hoja-lugar .icono { color: var(--muted); }
+
+/* lugar sugerido mientras se busca */
+.hoja-lugar.buscando { background: var(--accent-soft); }
+.hoja-lista button:disabled { opacity: 0.45; }
+.girando-azul {
+  margin-left: auto; align-self: center; width: 18px; height: 18px; border-radius: 50%; flex: none;
+  border: 2px solid var(--accent-soft); border-top-color: var(--accent); animation: girar 0.8s linear infinite;
+}

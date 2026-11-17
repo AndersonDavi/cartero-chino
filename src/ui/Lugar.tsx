@@ -67,6 +67,7 @@ export function Lugar(props: {
   const [hoja, setHoja] = useState(false); // celular: el buscador se abre en una hoja desde abajo
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false); // mientras llegan los resultados se muestra un esqueleto
+  const [buscandoSugerido, setBuscandoSugerido] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -105,6 +106,16 @@ export function Lugar(props: {
     setQ('');
     setList([]);
     setHoja(false);
+  };
+  // un lugar sugerido se elige con un solo toque: se busca por su nombre y se toma el primer resultado
+  const elegirSugerido = (nombreLugar: string) => {
+    if (buscandoSugerido) return;
+    setBuscandoSugerido(nombreLugar);
+    const ctrl = new AbortController();
+    buscar(nombreLugar, ctrl.signal)
+      .then((l) => (l.length ? elegir({ ...l[0], name: nombreLugar }) : setQ(nombreLugar)))
+      .catch(() => setQ(nombreLugar))
+      .finally(() => setBuscandoSugerido(null));
   };
 
   if (celular) {
@@ -174,12 +185,18 @@ export function Lugar(props: {
                   </li>
                   {EMBLEMATICOS.map((x) => (
                     <li key={x.nombre}>
-                      <button type="button" className="hoja-lugar" onClick={() => setQ(x.nombre)}>
+                      <button
+                        type="button"
+                        className={`hoja-lugar ${buscandoSugerido === x.nombre ? 'buscando' : ''}`}
+                        onClick={() => elegirSugerido(x.nombre)}
+                        disabled={!!buscandoSugerido && buscandoSugerido !== x.nombre}
+                      >
                         <Icono nombre="estrella" />
                         <span>
                           <b>{x.nombre}</b>
-                          <small>{x.detalle}</small>
+                          <small>{buscandoSugerido === x.nombre ? 'Buscando en el mapa…' : x.detalle}</small>
                         </span>
+                        {buscandoSugerido === x.nombre && <i className="girando-azul" aria-hidden="true" />}
                       </button>
                     </li>
                   ))}

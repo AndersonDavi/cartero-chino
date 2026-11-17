@@ -11,7 +11,8 @@ import { C, MapView, type EditTool, type Fondo, type Layers, type MapApi, type V
 import { TableroView } from './ui/TableroView';
 import { Teoria, EXPLICAR } from './ui/Teoria';
 import { Guia } from './ui/Guia';
-import { fmt, fromMs, toMs, type Unit } from './ui/format';
+import { Contador, Paso, type EstadoPaso } from './ui/Paso';
+import { fmt, fmtSpeed, fromMs, toMs, type Unit } from './ui/format';
 import { Lugar, type Punto } from './ui/Lugar';
 import { exportProject, fileName, importProject, makeProject, parseProject, type Proyecto } from './ui/proyecto';
 import { driveConfigured, listDrive, openFromDrive, saveToDrive, type DriveFile } from './services/drive';
@@ -38,6 +39,7 @@ const VIEWS: { id: View; label: string }[] = [
   { id: 'navegar', label: 'Navegar' },
   { id: 'tablero', label: 'Tablero' },
 ];
+const MAPAS: View[] = ['plano', 'aerea', '3d'];
 // velocidades de la animación: las reales primero y luego más rápidas para rutas largas (se guardan en m/s)
 // reproducción: ×1 es tiempo real a la velocidad del vehículo; menos de 1 es cámara lenta
 const MULTS = [0.25, 0.5, 1, 2, 5, 10, 30, 60, 120, 300, 600, 1800, 3600, 10800];
@@ -547,6 +549,10 @@ export default function App() {
 
   const pos = route.steps.length ? positionAt(route.steps, progress) : null;
   const guide = useMemo(() => buildGuide(route.steps), [route]);
+  const paso1: EstadoPaso = area || graph ? 'hecho' : 'actual';
+  const paso2: EstadoPaso = graph ? 'hecho' : area ? 'actual' : 'pendiente';
+  const paso3: EstadoPaso = solution || sectores ? 'hecho' : graph ? 'actual' : 'pendiente';
+
   const estimate = {
     speed: avg,
     waitCross,
@@ -566,6 +572,8 @@ export default function App() {
                   </button>
                   <input type="range" min={0} max={route.total} step={route.total / 2000} value={progress} onChange={(e) => seek(+e.target.value)} />
                 </div>
+                <details className="velocidades-box">
+                  <summary>Velocidad ({fmtSpeed(avg, unit)}) y esperas</summary>
                 <div className="velocidades">
                   <div className="fila fondo promedio">
                     <span>Velocidad del vehículo</span>
@@ -602,6 +610,7 @@ export default function App() {
                     <span>s</span>
                   </div>
                 </div>
+                </details>
                 <p className="dato">
                   Paso {pos ? pos.i + 1 : 0} de {route.steps.length} · {fmt(progress)} de {fmt(route.total)}
                 </p>
@@ -671,7 +680,24 @@ export default function App() {
       {guia && <Guia onClose={() => abrirGuia(false)} />}
 
       <nav className="vistas">
-        {VIEWS.map((v) => (
+        {/* Plano, aérea y 3D son la misma vista de mapa: van juntas en un solo selector */}
+        <label className={`vista-mapa ${MAPAS.includes(view) ? 'on' : ''}`}>
+          <select
+            value={MAPAS.includes(view) ? view : ''}
+            onChange={(e) => e.target.value && setView(e.target.value as View)}
+            aria-label="Vista de mapa"
+          >
+            <option value="" disabled hidden>
+              Mapa
+            </option>
+            {VIEWS.filter((v) => MAPAS.includes(v.id)).map((v) => (
+              <option key={v.id} value={v.id}>
+                Mapa · {v.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        {VIEWS.filter((v) => !MAPAS.includes(v.id)).map((v) => (
           <button
             key={v.id}
             className={view === v.id ? 'on' : ''}
@@ -685,13 +711,6 @@ export default function App() {
         ))}
         <button className={guia ? 'on' : ''} onClick={() => abrirGuia(true)} title="Teoría y fórmulas del cartero chino">
           Teoría
-        </button>
-        <button
-          className="fondo-rapido"
-          onClick={() => setFondo(fondo === 'completo' ? 'minimo' : fondo === 'minimo' ? 'ninguno' : 'completo')}
-          title="Cuánto mapa de fondo se ve (también en Ajustes)"
-        >
-          Fondo: {fondo === 'completo' ? 'completo' : fondo === 'minimo' ? 'mínimo' : 'solo grafo'}
         </button>
       </nav>
 
@@ -903,9 +922,29 @@ export default function App() {
 
           {mode === 'cartero' && (
           <>
-          <section>
-            <h2>1. Área</h2>
-            <div className="fila">
+          <Paso n={1} titulo="¿Qué zona va a recorrer?" ayuda="Elige un barrio de la lista o dibuja la zona en el mapa." estado={paso1} resumen={barrio ? `Barrio ${barrio}${area ? ` · ${km2.toLocaleString('es-CO', { maximumFractionDigits: 2 })} km²` : ''}` : area ? `Zona de ${km2.toLocaleString('es-CO', { maximumFractionDigits: 2 })} km²` : name}>
+            <label className="campo">
+              <span>Barrio de Barranquilla</span>
+              <select
+                value={barrio}
+                onFocus={cargarBarrios}
+                onPointerDown={cargarBarrios}
+                onChange={(e) => elegirBarrio(e.target.value)}
+                disabled={!!busy}
+              >
+                <option value="">{barrios ? `Elige uno de los ${barrios.length} barrios…` : 'Elige un barrio…'}</option>
+                {barrios?.map((b) => (
+                  <option key={b.n} value={b.n}>
+                    {b.n}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {barrio && <p className="ayuda">Límite oficial del POT (Alcaldía de Barranquilla, datos.gov.co, CC BY-SA 4.0).</p>}
+            <p className="separador">
+              <span>o dibújala en el mapa</span>
+            </p>
+            <div className="fila herramientas">
               <button className={drawMode === 'rectangle' ? 'on' : ''} onClick={() => setDrawMode(drawMode === 'rectangle' ? null : 'rectangle')}>
                 Rectángulo
               </button>
@@ -939,7 +978,7 @@ export default function App() {
                   if (demo) loadDemo(demo.file);
                 }}
               >
-                <option value="">Más…</option>
+                <option value="">Ejemplos y ciudades…</option>
                 <optgroup label="Ciudades">
                   {Object.keys(zonas).map((z) => (
                     <option key={z}>{z}</option>
@@ -957,28 +996,6 @@ export default function App() {
                 </optgroup>
               </select>
             </div>
-            <div className="fila barrio">
-              <select
-                value={barrio}
-                onFocus={cargarBarrios}
-                onPointerDown={cargarBarrios}
-                onChange={(e) => elegirBarrio(e.target.value)}
-                disabled={!!busy}
-                aria-label="Barrio de Barranquilla"
-              >
-                <option value="">{barrios ? `Barrio de Barranquilla (${barrios.length})…` : 'Barrio de Barranquilla…'}</option>
-                {barrios?.map((b) => (
-                  <option key={b.n} value={b.n}>
-                    {b.n}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {barrio && (
-              <p className="ayuda">
-                Límite oficial del POT (Alcaldía de Barranquilla, datos.gov.co, CC BY-SA 4.0). Se calcula la ruta que recorre todas las calles del barrio.
-              </p>
-            )}
             {trace && (
               <div className="trazado">
                 <p className="ayuda">
@@ -1027,20 +1044,29 @@ export default function App() {
                 OpenStreetMap (más lento; si no, se usan las calles guardadas de Barranquilla y Soledad)
               </label>
             </details>
-          </section>
+          </Paso>
 
-          <section>
-            <h2>2. Grafo</h2>
+          <Paso
+            n={2}
+            titulo="Convertir las calles en un grafo"
+            ayuda="Cada cruce se vuelve un vértice y cada calle una arista con su longitud."
+            estado={paso2}
+            resumen={stats ? `${stats.vertices.toLocaleString('es-CO')} vértices y ${stats.edges.toLocaleString('es-CO')} aristas` : undefined}
+          >
             <button className="primario" disabled={!area || !!busy} onClick={() => send({ type: 'build', ring: area!, options, source }, 'Preparando…')}>
-              Generar grafo
+              {graph ? 'Volver a generar el grafo' : 'Generar grafo'}
             </button>
+            {!area && !graph && <p className="ayuda">Primero elige la zona en el paso 1.</p>}
+            {graph && stats && (
+              <p className="dato">
+                {stats.vertices.toLocaleString('es-CO')} vértices (cruces) y {stats.edges.toLocaleString('es-CO')} aristas (calles). Toca un vértice en el mapa para
+                elegir dónde empieza el cartero (ahora: {graph.vertices[start]?.id}).
+              </p>
+            )}
             {graph && origin && <p className="ayuda">Fuente: {origin}.</p>}
-            {graph && <p className="ayuda">Toca un vértice para elegir dónde empezar (ahora: {graph.vertices[start]?.id}).</p>}
-          </section>
-
           {graph && (
-            <section>
-              <h2>Editar grafo</h2>
+            <details className="editar">
+              <summary>Editar el grafo a mano</summary>
               <div className="fila herramientas">
                 {(
                   [
@@ -1081,40 +1107,42 @@ export default function App() {
                   Al terminar, vuelve a calcular la ruta.
                 </p>
               )}
-            </section>
+            </details>
           )}
+          </Paso>
 
-          <section>
-            <h2>3. Ruta</h2>
+          <Paso
+            n={3}
+            titulo="Calcular la ruta"
+            ayuda="La ruta más corta que pasa por todas las calles y vuelve al punto de partida."
+            estado={paso3}
+          >
+            <div className="carteros">
+              <div>
+                <b>Carteros</b>
+                <span className="ayuda">{carteros > 1 ? 'La zona se reparte en sectores parejos, uno por cartero.' : 'Uno solo recorre toda la zona.'}</span>
+              </div>
+              <Contador value={carteros} min={1} max={20} onChange={setCarteros} label="Número de carteros" />
+            </div>
             {!isExample && (
               <label className="check">
-                <input type="checkbox" checked={freeMove} onChange={(e) => setFreeMove(e.target.checked)} /> Para moverse entre calles, usar también las de fuera del
-                área (como Google Maps)
+                <input type="checkbox" checked={freeMove} onChange={(e) => setFreeMove(e.target.checked)} /> Puede pasar por calles de fuera de la zona para moverse
+                (como Google Maps)
               </label>
             )}
-            <label className="carteros">
-              Carteros
-              <input
-                type="number"
-                min={1}
-                max={20}
-                value={carteros}
-                onChange={(e) => setCarteros(Math.max(1, Math.min(20, Math.round(Number(e.target.value)) || 1)))}
-              />
-              <span className="ayuda">{carteros > 1 ? 'el área se reparte en sectores parejos, uno por cartero' : 'uno solo recorre todo'}</span>
-            </label>
             <button className="primario" disabled={!graph || !!busy} onClick={() => calcular()}>
               {carteros > 1 ? `Repartir entre ${carteros} carteros` : 'Calcular ruta óptima'}
             </button>
+            {!graph && <p className="ayuda">Primero genera el grafo en el paso 2.</p>}
             {sectores && <TablaSectores sectores={sectores} speed={estimate.speed} />}
             {reproductor}
-          </section>
+          </Paso>
           </>
           )}
 
           {graph && stats && (
             <section>
-              <h2>Teoría</h2>
+              <h2>Resultado y explicación</h2>
               <div className="capas">
                 {(Object.keys(ALL) as (keyof Layers)[]).map((k) => (
                   <button

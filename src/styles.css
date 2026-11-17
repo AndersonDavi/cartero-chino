@@ -13,6 +13,10 @@
   --start: #16a34a;
   --board: #fbfaf5;
   --board-ink: #1e293b;
+  --accent-soft: rgba(37, 99, 235, 0.1);
+  --accent-text: #1d4ed8;
+  --ok: #16a34a;
+  --raised: #ffffff;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color: var(--fg);
 }
@@ -26,6 +30,10 @@
     --chip: #1e293b;
     --board: #14251c;
     --board-ink: #e8efe9;
+    --accent-soft: rgba(96, 165, 250, 0.16);
+    --accent-text: #93c5fd;
+    --ok: #4ade80;
+    --raised: #334155;
   }
 }
 
@@ -397,3 +405,107 @@ html.proyector .guia-in { zoom: 1.25; }
 .sectores th { color: var(--muted); font-weight: 600; }
 .sectores td i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; }
 .sectores tr.max td { font-weight: 600; }
+
+/* ============================================================
+   Rediseño del panel: un solo azul fuerte (la acción del paso),
+   opciones elegidas en azul suave y pasos numerados.
+   ============================================================ */
+.panel { width: 400px; }
+.panel button, .boton, .panel select { transition: background 0.15s, border-color 0.15s, color 0.15s; }
+.panel button:not(:disabled):hover, .boton:hover, .panel select:not(:disabled):hover { border-color: var(--muted); }
+.panel button.on { background: var(--accent-soft); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+.panel button:disabled { opacity: 0.5; }
+
+/* botón principal: azul solo si se puede usar */
+.primario { font-size: 15px !important; border-radius: 10px !important; }
+.primario:disabled { background: var(--chip) !important; color: var(--muted) !important; border-color: var(--line) !important; opacity: 1 !important; font-weight: 500; }
+.primario:not(:disabled):hover { filter: brightness(1.08); }
+
+/* barras de opciones (vistas y modos): la elegida resalta en neutro, no en azul */
+.vistas button { color: var(--muted); transition: background 0.15s, color 0.15s; }
+.vistas button:hover { color: var(--fg); }
+.vistas button.on { background: var(--fg); color: var(--bg); }
+.modos { padding: 4px; border-radius: 12px; }
+.modos button { color: var(--muted); border-radius: 9px !important; transition: background 0.15s, color 0.15s; }
+.modos button.on { background: var(--raised) !important; color: var(--fg) !important; font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); }
+.capas button.on { font-weight: 500; }
+
+/* pasos */
+.panel section.paso-card { border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin: 12px 0; background: transparent; transition: border-color 0.2s, opacity 0.2s; }
+.panel section.paso-card.actual { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.paso-card.pendiente { opacity: 0.6; }
+.paso-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
+.paso-head h2 { font-size: 15px !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--fg) !important; opacity: 1 !important; margin: 2px 0 0 !important; }
+.paso-num {
+  flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px;
+  background: var(--chip); color: var(--muted); border: 1px solid var(--line);
+}
+.paso-card.actual .paso-num { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.paso-card.hecho .paso-num { background: var(--ok); color: #fff; border-color: var(--ok); }
+.paso-ayuda { margin: 3px 0 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
+.paso-body > :last-child { margin-bottom: 0; }
+.paso-head > div { flex: 1; min-width: 0; }
+.paso-resumen { margin: 3px 0 0; font-size: 13.5px; font-weight: 600; color: var(--ok); }
+.panel .paso-cambiar { flex: none; font-size: 12.5px !important; padding: 5px 10px !important; min-height: 0 !important; }
+.panel section.paso-card.hecho:has(.paso-resumen) .paso-head { margin-bottom: 0; }
+
+/* campos */
+.campo { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.campo select { width: 100%; padding: 10px 12px !important; font-size: 15px !important; font-weight: 400; }
+.separador { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; margin: 12px 0 8px; }
+.separador::before, .separador::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.herramientas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.herramientas select { grid-column: 1 / -1; }
+.editar { margin-top: 10px; }
+.editar .herramientas { margin-top: 8px; }
+
+/* carteros: − n + */
+.carteros { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 6px; }
+.carteros > div:first-child { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.carteros .ayuda { margin: 0; flex-basis: auto; }
+.contador { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; flex: none; }
+.panel .contador button { border: 0; border-radius: 0; width: 38px; height: 36px; padding: 0; font-size: 18px; background: var(--chip); }
+.contador span { min-width: 34px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* celular: hoja más alta, barra de vistas deslizable y sin el botón de fondo (está en Ajustes) */
+@media (max-width: 799px) {
+  .panel { width: auto; max-height: 58vh; }
+  .vistas { overflow-x: auto; justify-content: flex-start; scrollbar-width: none; }
+  .vistas::-webkit-scrollbar { display: none; }
+  .vistas button { flex: 1 0 auto; }
+  .vistas .fondo-rapido { display: none; }
+  .tablero { padding-bottom: calc(58vh + 8px); }
+  .aviso { bottom: calc(58vh + 12px); }
+  .panel:not(.cerrado) ~ .navbar { bottom: calc(58vh + 8px); }
+  .panel section.paso-card { padding: 12px; }
+  .panel button, .panel select { min-height: 40px; }
+}
+.velocidades-box { margin-top: 6px; }
+.velocidades-box .velocidades { margin-top: 6px; }
+
+/* --- pestañas a la derecha del panel (sobre el mapa) y panel a toda la altura --- */
+@media (min-width: 800px) {
+  .vistas { left: calc(424px + (100% - 424px) / 2); top: 12px; }
+  .panel { top: 12px; }
+  .banner, .navbar { left: calc(424px + (100% - 424px) / 2); }
+  .tablero { padding-top: 64px; padding-left: 424px; }
+  .tablero.vacio { padding-left: 440px; }
+}
+.vista-mapa { position: relative; display: inline-flex; align-items: center; border-radius: 999px; }
+.vista-mapa select {
+  appearance: none; -webkit-appearance: none; border: 0; background: none; color: var(--muted); cursor: pointer;
+  padding: 7px 26px 7px 12px; border-radius: 999px; font-size: 14px;
+}
+.vista-mapa::after { content: '▾'; position: absolute; right: 10px; pointer-events: none; font-size: 11px; color: var(--muted); }
+.vista-mapa.on { background: var(--fg); }
+.vista-mapa.on select, .vista-mapa.on::after { color: var(--bg); }
+.vista-mapa select option { color: var(--fg); background: var(--bg); }
+@media (max-width: 799px) {
+  .vista-mapa { flex: 1 0 auto; justify-content: center; }
+  .vista-mapa select { font-size: 13px; width: 100%; text-align: center; }
+}
+
+/* --- guía: índice en una sola fila que se desliza (no tapa los títulos) --- */
+.g-indice { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; padding: 10px 0; }
+.g-indice button { flex: none; white-space: nowrap; }
+.guia section { scroll-margin-top: 64px; }

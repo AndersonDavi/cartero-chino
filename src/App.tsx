@@ -51,6 +51,8 @@ const PROMEDIOS = [
   { label: 'Carro', kmh: 25 },
   { label: 'Moto', kmh: 30 },
 ];
+// icono de cada velocidad típica
+const ICONO_VEHICULO: Record<string, string> = { 'A pie': 'peaton', Bici: 'bici', Carro: 'carro', Moto: 'moto' };
 const DEMOS = [{ name: 'El Prado (sin internet)', file: 'el-prado.json' }];
 const LETRAS = 'ABCDEFGHIJKLMNOP';
 const ALL: Layers ={ grafo: true, impares: true, parejas: true, duplicadas: true, ruta: true };
@@ -640,6 +642,7 @@ export default function App() {
                   <div className="chips">
                     {PROMEDIOS.map((p) => (
                       <button key={p.label} className={Math.abs(avg * 3.6 - p.kmh) < 0.01 ? 'on' : ''} onClick={() => setAvg(p.kmh / 3.6)}>
+                        <Icono nombre={ICONO_VEHICULO[p.label] ?? 'peaton'} size={22} />
                         {p.label} <small>{p.kmh} km/h</small>
                       </button>
                     ))}

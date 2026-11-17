@@ -41,6 +41,20 @@ const TRAZOS: Record<string, ReactNode> = {
     </>
   ),
   mas: <path d="M12 5v14M5 12h14" />,
+  bici: (
+    <>
+      <circle cx="6" cy="16" r="3.5" />
+      <circle cx="18" cy="16" r="3.5" />
+      <path d="M6 16l4-7h5l3 7M10 9l3 7h-7M9 6.5h3M15 9l-1-2.5h2" />
+    </>
+  ),
+  moto: (
+    <>
+      <circle cx="5.5" cy="16" r="3" />
+      <circle cx="18.5" cy="16" r="3" />
+      <path d="M8.5 16h6l2.5-5h-5.5L9 13H5.5M14 6.5h2.5l2 9.5M11 11l-1.5-2.5H7" />
+    </>
+  ),
   estrella: <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" />,
   buscar: (
     <>

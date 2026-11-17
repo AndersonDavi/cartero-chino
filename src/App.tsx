@@ -84,7 +84,7 @@ export default function App() {
   const [playing, setPlaying] = useState(false);
   const [mult, setMult] = useState(30); // reproducción ×N
   const [progress, setProgress] = useState(0);
-  const [follow, setFollow] = useState(false);
+  const [follow, setFollow] = useState(true); // el mapa sigue al cartero mientras recorre
   const [open, setOpen] = useState(true);
   const [fondo, setFondo] = useState<Fondo>('completo');
   const [mode, setMode] = useState<'cartero' | 'ab'>('cartero');
@@ -698,6 +698,36 @@ export default function App() {
             if (step === 0) setLayers(ALL);
           }}
           estimate={estimate}
+          onIrMapa={() => setView(ultimoMapa.current)}
+          onCalcular={viewGraph ? () => calcular() : undefined}
+          ocupado={!!busy}
+          controles={
+            solution &&
+            route.total > 0 && (
+              <div className="reproductor-caja">
+                <div className="reproductor-botones">
+                  <button
+                    className={`reproducir ${playing ? 'on' : ''}`}
+                    onClick={() => (progress >= route.total ? (seek(0), setPlaying(true)) : setPlaying(!playing))}
+                  >
+                    {playing ? '⏸ Pausar' : progress > 0 && progress < route.total ? '▶ Seguir' : '▶ Ver al cartero recorrerla'}
+                  </button>
+                  <button onClick={restart} title="Volver al inicio" aria-label="Volver al inicio">
+                    ⟲
+                  </button>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={route.total}
+                  step={route.total / 2000}
+                  value={progress}
+                  onChange={(e) => seek(+e.target.value)}
+                  aria-label="Avance del recorrido"
+                />
+              </div>
+            )
+          }
         />
       )}
 
@@ -804,7 +834,7 @@ export default function App() {
         );
       })()}
 
-      <aside className={`panel ${open ? '' : 'cerrado'}`}>
+      <aside className={`panel ${open ? '' : 'cerrado'} ${view === 'tablero' ? 'oculto' : ''}`}>
         <button className="asa" onClick={() => setOpen(!open)} aria-label="Mostrar u ocultar panel">
           <span />
         </button>
@@ -864,53 +894,68 @@ export default function App() {
           </div>
 
           {mode === 'ab' && (
-            <section>
-              <h2>Camino más corto</h2>
-              {stops.map((x, i) => (
-                <Lugar
-                  key={i}
-                  letra={LETRAS[i]}
-                  role={i === 0 ? 'inicio' : i === stops.length - 1 ? 'fin' : 'medio'}
-                  value={x}
-                  onChange={(p) => setStop(i, p)}
-                  picking={pickPoint === i}
-                  onPick={() => setPickPoint(pickPoint === i ? null : i)}
-                  onGps={i === 0 ? gps : undefined}
-                  onRemove={stops.length > 2 ? () => (setStops((s) => s.filter((_, j) => j !== i)), setPickPoint(null)) : undefined}
-                  onUp={i > 0 ? () => setStops((s) => s.map((x, j) => (j === i ? s[i - 1] : j === i - 1 ? s[i] : x))) : undefined}
-                  onDown={i < stops.length - 1 ? () => setStops((s) => s.map((x, j) => (j === i ? s[i + 1] : j === i + 1 ? s[i] : x))) : undefined}
-                />
-              ))}
-              <div className="fila">
-                <button
-                  disabled={stops.length >= LETRAS.length}
-                  onClick={() => setStops((s) => [...s, null])}
-                  title="Agrega una parada al final (pasa a ser el destino)"
-                >
+            <>
+            <Paso
+              n={1}
+              titulo="¿De dónde a dónde?"
+              ayuda="Escribe una dirección, usa tu ubicación o toca el mapa."
+              estado={stops.every((x) => x) ? 'hecho' : 'actual'}
+            >
+              <div className="paradas">
+                {stops.map((x, i) => (
+                  <Lugar
+                    key={i}
+                    letra={LETRAS[i]}
+                    role={i === 0 ? 'inicio' : i === stops.length - 1 ? 'fin' : 'medio'}
+                    value={x}
+                    onChange={(p) => setStop(i, p)}
+                    picking={pickPoint === i}
+                    onPick={() => setPickPoint(pickPoint === i ? null : i)}
+                    onGps={i === 0 ? gps : undefined}
+                    onRemove={stops.length > 2 ? () => (setStops((s) => s.filter((_, j) => j !== i)), setPickPoint(null)) : undefined}
+                    // con solo A y B basta el botón de intercambiar; con paradas, cada una se sube o se baja
+                    onUp={stops.length > 2 && i > 0 ? () => setStops((s) => s.map((x, j) => (j === i ? s[i - 1] : j === i - 1 ? s[i] : x))) : undefined}
+                    onDown={stops.length > 2 && i < stops.length - 1 ? () => setStops((s) => s.map((x, j) => (j === i ? s[i + 1] : j === i + 1 ? s[i] : x))) : undefined}
+                  />
+                ))}
+              </div>
+              <div className="paradas-acciones">
+                <button disabled={stops.length >= LETRAS.length} onClick={() => setStops((s) => [...s, null])} title="Agrega una parada al final (pasa a ser el destino)">
                   + Agregar parada
                 </button>
+                {stops.length === 2 && (
+                  <button onClick={() => setStops((s) => [s[1], s[0]])} title="Intercambiar origen y destino">
+                    ⇅ Intercambiar A y B
+                  </button>
+                )}
               </div>
               {stops.length > 2 && (
                 <label className="check">
-                  <input type="checkbox" checked={optimize} onChange={(e) => setOptimize(e.target.checked)} /> Ordenar las paradas para el recorrido más corto (problema del
-                  viajante)
+                  <input type="checkbox" checked={optimize} onChange={(e) => setOptimize(e.target.checked)} /> Ordenar las paradas para el recorrido más corto
+                  (problema del viajante)
                 </label>
               )}
               {stops.length > 2 && optimize && !roundTrip && (
                 <label className="check">
-                  <input type="checkbox" checked={fixEnd} onChange={(e) => setFixEnd(e.target.checked)} /> Terminar en la última parada ({LETRAS[stops.length - 1]}).
-                  Si lo quitas, solo {LETRAS[0]} queda fija y la ruta termina donde convenga.
+                  <input type="checkbox" checked={fixEnd} onChange={(e) => setFixEnd(e.target.checked)} /> Terminar en la última parada ({LETRAS[stops.length - 1]})
                 </label>
               )}
               {stops.length > 2 && !optimize && <p className="ayuda">Se visitan en el orden de la lista; usa ↑ ↓ para cambiarlo.</p>}
-              <div className="fila fondo">
-                <span>Voy</span>
+            </Paso>
+
+            <Paso
+              n={2}
+              titulo="¿Cómo va?"
+              ayuda={vehicle ? 'Respeta las calles de un solo sentido y los giros prohibidos.' : 'A pie puede ir por cualquier calle, en ambos sentidos.'}
+              estado={solution?.kind === 'ab' ? 'hecho' : stops.every((x) => x) ? 'actual' : 'pendiente'}
+            >
+              <div className="opciones-grandes" role="group" aria-label="Cómo va">
                 {(
                   [
-                    [false, 'A pie'],
-                    [true, 'En carro o moto'],
+                    [false, '🚶', 'A pie'],
+                    [true, '🚗', 'Carro o moto'],
                   ] as const
-                ).map(([v, label]) => (
+                ).map(([v, icono, label]) => (
                   <button
                     key={label}
                     className={vehicle === v ? 'on' : ''}
@@ -921,23 +966,24 @@ export default function App() {
                       setWaitTurn(v ? 8 : 0);
                     }}
                   >
+                    <span aria-hidden="true">{icono}</span>
                     {label}
                   </button>
                 ))}
               </div>
               <label className="check">
-                <input type="checkbox" checked={roundTrip} onChange={(e) => setRoundTrip(e.target.checked)} /> Ida y vuelta (A → B → A)
+                <input type="checkbox" checked={roundTrip} onChange={(e) => setRoundTrip(e.target.checked)} /> Ida y vuelta (regresa a {LETRAS[0]})
               </label>
               <button
                 className="primario"
                 disabled={stops.some((x) => !x) || !!busy}
                 onClick={() => send({ type: 'route', points: stops.map((x) => x!.p), vehicle, roundTrip, optimize, fixEnd }, 'Buscando el camino…')}
               >
-                Calcular camino más corto
+                {stops.some((x) => !x) ? 'Primero elige origen y destino' : 'Calcular camino más corto'}
               </button>
-              {vehicle && <p className="ayuda">Respeta las calles de un solo sentido y los giros prohibidos de OpenStreetMap.</p>}
               {reproductor}
-            </section>
+            </Paso>
+            </>
           )}
 
           {mode === 'cartero' && (

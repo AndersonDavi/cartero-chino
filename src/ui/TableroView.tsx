@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { degrees } from '../core/graph';
 import { positionAt, prime, type RouteStep } from '../core/route';
 import type { Graph, GraphStats, Solution } from '../core/types';
@@ -21,6 +21,10 @@ interface Props {
   explain: number;
   onExplain(step: number): void;
   estimate: Estimate;
+  controles?: ReactNode; // reproducir el recorrido del cartero sobre el tablero
+  onIrMapa(): void;
+  onCalcular?(): void; // calcular la ruta sin salir del tablero
+  ocupado?: boolean;
 }
 
 type Pt = { x: number; y: number };
@@ -28,7 +32,7 @@ type Box = { x: number; y: number; w: number; h: number };
 const PAD = 70;
 
 /** Vista "como en el tablero": vértices v1..vn, aristas e1..em, sin el mapa. */
-export function TableroView({ graph, solution, steps, progress, start, layers, onPickStart, stats, explain, onExplain, estimate }: Props) {
+export function TableroView({ graph, solution, steps, progress, start, layers, onPickStart, stats, explain, onExplain, estimate, controles, onIrMapa, onCalcular, ocupado }: Props) {
   const tokensRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [svgW, setSvgW] = useState(900);
@@ -328,25 +332,60 @@ export function TableroView({ graph, solution, steps, progress, start, layers, o
           <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} />
         </svg>
       )}
-      <aside className={`pasos ${!solution || !stats || (solution.kind !== 'ab' && explain === 0) ? 'compacto' : ''}`}>
+      <aside className="pasos">
         {!solution || !stats ? (
-          <p className="ayuda">Calcula la ruta para ver aquí, paso a paso, cómo se obtiene con las fórmulas.</p>
+          <div className="pasos-intro">
+            <p>Calcula la ruta para ver aquí, paso a paso, cómo se obtiene con las fórmulas.</p>
+            {onCalcular && (
+              <button className="primario" onClick={onCalcular} disabled={ocupado}>
+                Calcular la ruta
+              </button>
+            )}
+            <button className="secundario" onClick={onIrMapa}>
+              Ir al mapa
+            </button>
+          </div>
         ) : solution.kind === 'ab' ? (
-          <Formulas graph={graph} stats={stats} solution={solution} step={1} estimate={estimate} />
-        ) : explain === 0 ? (
-          <button className="primario" onClick={() => onExplain(1)}>
-            Ver cómo se calculó, paso a paso
-          </button>
+          <div className="pasos-cuerpo">
+            <Formulas graph={graph} stats={stats} solution={solution} step={1} estimate={estimate} />
+          </div>
         ) : (
           <>
-            <Formulas graph={graph} stats={stats} solution={solution} step={explain} estimate={estimate} />
-            <div className="fila pasos-nav">
-              <button onClick={() => onExplain(Math.max(1, explain - 1))} disabled={explain <= 1}>
-                ◀ Anterior
-              </button>
-              <button onClick={() => onExplain(explain < EXPLICAR.length ? explain + 1 : 1)}>{explain < EXPLICAR.length ? 'Siguiente ▶' : 'Volver a empezar'}</button>
-              <button onClick={() => onExplain(0)}>Salir</button>
+            <nav className="pasos-pills" aria-label="Pasos del cálculo">
+              {EXPLICAR.map((t, i) => (
+                <button key={t} className={explain === i + 1 ? 'on' : ''} onClick={() => onExplain(i + 1)}>
+                  <b>{i + 1}</b> {t}
+                </button>
+              ))}
+            </nav>
+            <div className="pasos-cuerpo">
+              {explain === 0 ? (
+                <div className="pasos-intro">
+                  <p>
+                    La ruta se calcula en <b>5 pasos</b>. Toca uno arriba o empieza por el primero: el tablero muestra en cada paso solo lo que corresponde.
+                  </p>
+                  <button className="primario" onClick={() => onExplain(1)}>
+                    Empezar por el paso 1
+                  </button>
+                </div>
+              ) : (
+                <Formulas graph={graph} stats={stats} solution={solution} step={explain} estimate={estimate} />
+              )}
             </div>
+            {explain > 0 && (
+              <div className="pasos-nav">
+                <button onClick={() => onExplain(Math.max(1, explain - 1))} disabled={explain <= 1}>
+                  ◀ Anterior
+                </button>
+                <button className="primario" onClick={() => onExplain(explain < EXPLICAR.length ? explain + 1 : 1)}>
+                  {explain < EXPLICAR.length ? 'Siguiente ▶' : 'Volver al paso 1'}
+                </button>
+                <button onClick={() => onExplain(0)} title="Ver todo el grafo con la ruta">
+                  Ver todo
+                </button>
+              </div>
+            )}
+            {controles && explain === 0 && <div className="pasos-reproductor">{controles}</div>}
           </>
         )}
       </aside>

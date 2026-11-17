@@ -631,3 +631,73 @@ html.proyector .guia-in { zoom: 1.25; }
 .panel .check input[type='checkbox']:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .panel details .check { background: var(--bg); }
 @media (prefers-reduced-motion: reduce) { .panel .check input[type='checkbox'], .panel .check input[type='checkbox']::after { transition: none; } }
+
+/* --- desplegables abiertos: las opciones quedan dentro de una caja con margen --- */
+.panel details[open] { border: 1px solid var(--line); border-radius: 10px; margin: 10px 0 4px; }
+.panel details[open] > summary { margin: 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 10px 10px 0 0; }
+.panel details[open] > summary ~ * { padding-left: 0; padding-right: 0; }
+.panel details[open] > :not(summary) { margin-left: 10px; margin-right: 10px; }
+.panel details[open] > :not(summary):first-of-type { margin-top: 10px; }
+.panel details[open] > :last-child { margin-bottom: 10px; }
+.panel details[open] .check { margin: 8px 10px; }
+.panel details[open] .velocidades { margin: 10px; }
+.panel details[open] .herramientas { margin: 10px; }
+
+/* --- Tablero a pantalla completa con su propio panel de explicación --- */
+.panel.oculto { display: none; }
+.tablero { padding: 64px 12px 12px 12px !important; }
+.tablero.vacio { padding: 64px 24px 24px !important; }
+.pasos { display: flex; flex-direction: column; gap: 10px; width: clamp(340px, 32vw, 480px) !important; padding: 14px !important; overflow: hidden; }
+.pasos-pills { display: flex; flex-wrap: wrap; gap: 6px; flex: none; }
+.pasos-pills button {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--chip); color: var(--fg);
+  border-radius: 999px; padding: 5px 11px 5px 5px; font-size: 13px; cursor: pointer;
+}
+.pasos-pills button b { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--bg); font-size: 12px; }
+.pasos-pills button.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-text); font-weight: 600; }
+.pasos-pills button.on b { background: var(--accent); color: var(--accent-fg); }
+.pasos-cuerpo { flex: 1; min-height: 0; overflow-y: auto; }
+.pasos-intro p { margin: 0 0 12px; line-height: 1.5; }
+.pasos-intro .primario { width: 100%; }
+.pasos-nav { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 6px; flex: none; margin: 0 !important; }
+.pasos-nav button { border: 1px solid var(--line); background: var(--chip); color: var(--fg); border-radius: 10px; padding: 10px 10px; cursor: pointer; font-size: 14px; }
+.pasos-nav .primario { margin: 0; }
+.pasos-reproductor { flex: none; border-top: 1px solid var(--line); padding-top: 10px; }
+.pasos .reproductor-caja { margin: 0; }
+.pasos .reproductor-botones { display: flex; gap: 6px; margin-bottom: 8px; }
+.pasos .reproductor-botones button { border: 1px solid var(--line); background: var(--chip); color: var(--fg); border-radius: 10px; padding: 9px 12px; cursor: pointer; }
+.pasos .reproductor-botones .reproducir { flex: 1; font-weight: 600; background: var(--accent-soft); color: var(--accent-text); border-color: var(--accent); }
+.pasos .reproductor-botones .reproducir.on { background: var(--chip); color: var(--fg); border-color: var(--line); }
+.tablero-cuerpo > .tablero-zoom { left: 12px !important; right: auto !important; top: 12px !important; }
+@media (max-width: 799px) {
+  .tablero { padding: 52px 8px 8px !important; }
+  .tablero-cuerpo { flex-direction: column; gap: 8px; }
+  .tablero-cuerpo .tablero-svg { flex: 1; min-height: 32vh; height: auto; }
+  .pasos { width: auto !important; max-height: 56vh; flex: none; }
+  .pasos-pills { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -14px; padding: 0 14px; }
+  .pasos-pills::-webkit-scrollbar { display: none; }
+  .pasos-pills button { flex: none; }
+  .minimapa { display: none; }
+  .tablero-aviso { font-size: 12px; padding: 4px 8px; }
+  .notacion { font-size: 14px !important; padding: 6px 4px; }
+}
+
+/* --- Ir de A a B --- */
+.paradas { position: relative; display: flex; flex-direction: column; gap: 4px; }
+.paradas .lugar { margin: 0; }
+.panel .lugar-fila input { padding: 11px 12px; font-size: 15px; border-radius: 10px; background: var(--chip); }
+.panel .lugar-elegido { padding: 10px 12px; border-radius: 10px; font-size: 14px; background: var(--accent-soft); border-color: var(--accent); color: var(--fg); }
+.panel .lugar-elegido span { color: var(--muted); opacity: 1; }
+.lugar-letra { width: 28px; height: 28px; }
+.lugar-letra.medio { background: var(--muted); }
+.lugar-acciones { margin: 6px 0 4px 36px; }
+.panel .lugar-acciones button { font-size: 12.5px !important; padding: 6px 10px !important; border-radius: 999px; min-height: 0; }
+.panel .lugar-orden button, .panel .lugar-quitar { width: 32px; padding: 6px 0 !important; border: 0; background: none; color: var(--muted); min-height: 0; font-size: 16px; }
+.lugar-orden { display: inline-flex; }
+.paradas-acciones { display: flex; gap: 6px; margin: 10px 0 2px; flex-wrap: wrap; }
+.panel .paradas-acciones button { flex: 1; border-style: dashed; background: none; color: var(--accent-text); font-weight: 600; }
+.opciones-grandes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
+.panel .opciones-grandes button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px; font-size: 14px; border-radius: 12px; }
+.opciones-grandes button span { font-size: 24px; line-height: 1; }
+.pasos-intro .secundario { width: 100%; margin-top: 8px; border: 1px solid var(--line); background: var(--chip); color: var(--fg); border-radius: 10px; padding: 10px; cursor: pointer; font-size: 14px; }
+.pasos-intro .primario:disabled { opacity: 0.6; }

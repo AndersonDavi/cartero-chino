@@ -41,6 +41,7 @@ const TRAZOS: Record<string, ReactNode> = {
     </>
   ),
   mas: <path d="M12 5v14M5 12h14" />,
+  estrella: <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" />,
   buscar: (
     <>
       <circle cx="11" cy="11" r="6.5" />

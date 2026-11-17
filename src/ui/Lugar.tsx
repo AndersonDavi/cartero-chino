@@ -17,6 +17,23 @@ interface Sugerencia extends Punto {
 const PHOTON = 'https://photon.komoot.io/api/';
 const BBOX = '-74.95,10.85,-74.70,11.12';
 
+// Lugares conocidos que se sugieren con el buscador vacío. Solo van los nombres: al
+// tocar uno se busca en el mapa y se elige el resultado (no hay coordenadas a mano).
+const EMBLEMATICOS: { nombre: string; detalle: string }[] = [
+  { nombre: 'Estadio Metropolitano Roberto Meléndez', detalle: 'Estadio' },
+  { nombre: 'Gran Malecón', detalle: 'Malecón del río Magdalena' },
+  { nombre: 'Catedral Metropolitana María Reina', detalle: 'Iglesia' },
+  { nombre: 'Ventana al Mundo', detalle: 'Monumento' },
+  { nombre: 'Paseo Bolívar', detalle: 'Centro' },
+  { nombre: 'Plaza de la Paz', detalle: 'Plaza' },
+  { nombre: 'Museo del Caribe', detalle: 'Museo' },
+  { nombre: 'Zoológico de Barranquilla', detalle: 'Zoológico' },
+  { nombre: 'Estadio Romelio Martínez', detalle: 'Estadio' },
+  { nombre: 'Universidad del Norte', detalle: 'Universidad' },
+  { nombre: 'Portal del Prado', detalle: 'Centro comercial' },
+  { nombre: 'Aeropuerto Ernesto Cortissoz', detalle: 'Aeropuerto (Soledad)' },
+];
+
 async function buscar(q: string, signal: AbortSignal): Promise<Sugerencia[]> {
   const url = `${PHOTON}?q=${encodeURIComponent(q)}&limit=6&lat=10.96&lon=-74.80&bbox=${BBOX}`;
   const res = await fetch(url, { signal });
@@ -49,13 +66,17 @@ export function Lugar(props: {
   const celular = useEsCelular();
   const [hoja, setHoja] = useState(false); // celular: el buscador se abre en una hoja desde abajo
   const [error, setError] = useState('');
+  const [cargando, setCargando] = useState(false); // mientras llegan los resultados se muestra un esqueleto
   const abort = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (q.trim().length < 3) {
       setList([]);
+      setCargando(false);
       return;
     }
+    setCargando(true);
+    setError('');
     const id = setTimeout(() => {
       abort.current?.abort();
       const ctrl = new AbortController();
@@ -64,9 +85,13 @@ export function Lugar(props: {
         .then((l) => {
           setList(l);
           setError(l.length ? '' : 'Sin resultados');
+          setCargando(false);
         })
         .catch((e) => {
-          if (!ctrl.signal.aborted) setError(`No se pudo buscar (${(e as Error).message})`);
+          if (!ctrl.signal.aborted) {
+            setError(`No se pudo buscar (${(e as Error).message})`);
+            setCargando(false);
+          }
         });
     }, 350);
     return () => clearTimeout(id);
@@ -142,9 +167,36 @@ export function Lugar(props: {
               )}
             </div>
             <ul className="hoja-lista">
-              {q.trim().length < 3 && <li className="hoja-nada">Escribe al menos 3 letras para buscar en Barranquilla y Soledad.</li>}
-              {q.trim().length >= 3 && error && <li className="hoja-nada">{error}</li>}
-              {list.map((s, i) => (
+              {q.trim().length < 3 && (
+                <>
+                  <li>
+                    <p className="hoja-grupo">Lugares sugeridos</p>
+                  </li>
+                  {EMBLEMATICOS.map((x) => (
+                    <li key={x.nombre}>
+                      <button type="button" className="hoja-lugar" onClick={() => setQ(x.nombre)}>
+                        <Icono nombre="estrella" />
+                        <span>
+                          <b>{x.nombre}</b>
+                          <small>{x.detalle}</small>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </>
+              )}
+              {cargando &&
+                [0, 1, 2, 3].map((i) => (
+                  <li key={`sk${i}`} className="esqueleto" aria-hidden="true">
+                    <span className="sk-icono" />
+                    <span className="sk-lineas">
+                      <span style={{ width: `${70 - i * 8}%` }} />
+                      <span style={{ width: `${45 + i * 6}%` }} />
+                    </span>
+                  </li>
+                ))}
+              {!cargando && q.trim().length >= 3 && error && <li className="hoja-nada">{error}</li>}
+              {!cargando && list.map((s, i) => (
                 <li key={i}>
                   <button type="button" className="hoja-lugar" onClick={() => elegir(s)}>
                     <Icono nombre="pin" />

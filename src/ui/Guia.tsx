@@ -453,7 +453,7 @@ function Esquinas() {
         <text x="226" y="126" textAnchor="middle">3. entra</text>
         <text x="180" y="196">4. sale</text>
         <text x="170" y="250" textAnchor="middle" className="g-fuerte">Grado 4 (par)</text>
-        <text x="170" y="272" textAnchor="middle">Entra, sale, entra, sale: no se atasca</text>
+        <text x="170" y="272" textAnchor="middle" className="g-cap">Entra, sale, entra, sale: no se atasca</text>
       </g>
       <line x1="340" y1="50" x2="340" y2="280" stroke="var(--line)" strokeDasharray="4 4" />
       <g strokeWidth="2.5">
@@ -469,7 +469,7 @@ function Esquinas() {
         <text x="566" y="122" textAnchor="middle">3. entra</text>
         <text x="556" y="170" textAnchor="middle">repite la 3</text>
         <text x="510" y="250" textAnchor="middle" className="g-fuerte">Grado 3 (impar)</text>
-        <text x="510" y="272" textAnchor="middle">No queda calle libre: toca repetir</text>
+        <text x="510" y="272" textAnchor="middle" className="g-cap">No queda calle libre: toca repetir</text>
       </g>
     </svg>
   );

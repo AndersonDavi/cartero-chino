@@ -214,6 +214,7 @@ export function TableroView({ graph, solution, steps, progress, start, layers, o
           {!vLabels && ' Los nombres aparecen al acercar.'} El recuadro de la esquina muestra en qué zona estás.
         </div>
       )}
+      <div className="tablero-cuerpo">
       <div className="tablero-zoom">
         <button onClick={() => zoomAt(0.6, { x: vb.x + vb.w / 2, y: vb.y + vb.h / 2 })} title="Acercar">
           +
@@ -225,7 +226,6 @@ export function TableroView({ graph, solution, steps, progress, start, layers, o
           ⤢
         </button>
       </div>
-      <div className="tablero-cuerpo">
       <svg
         ref={svgRef}
         viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
@@ -328,7 +328,7 @@ export function TableroView({ graph, solution, steps, progress, start, layers, o
           <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} />
         </svg>
       )}
-      <aside className="pasos">
+      <aside className={`pasos ${!solution || !stats || (solution.kind !== 'ab' && explain === 0) ? 'compacto' : ''}`}>
         {!solution || !stats ? (
           <p className="ayuda">Calcula la ruta para ver aquí, paso a paso, cómo se obtiene con las fórmulas.</p>
         ) : solution.kind === 'ab' ? (

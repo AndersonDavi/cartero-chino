@@ -12,7 +12,8 @@ import { TableroView } from './ui/TableroView';
 import { Teoria, EXPLICAR } from './ui/Teoria';
 import { Guia } from './ui/Guia';
 import { Contador, Paso, type EstadoPaso } from './ui/Paso';
-import { fmt, fmtSpeed, fromMs, toMs, type Unit } from './ui/format';
+import { Escoger } from './ui/Escoger';
+import { fmt, fromMs, toMs, type Unit } from './ui/format';
 import { Lugar, type Punto } from './ui/Lugar';
 import { exportProject, fileName, importProject, makeProject, parseProject, type Proyecto } from './ui/proyecto';
 import { driveConfigured, listDrive, openFromDrive, saveToDrive, type DriveFile } from './services/drive';
@@ -67,6 +68,8 @@ export default function App() {
   const [drawMode, setDrawMode] = useState<'rectangle' | 'polygon' | null>(null);
   const [options, setOptions] = useState<BuildOptions>(defaultBuildOptions);
   const [graph, setGraph] = useState<Graph | null>(null);
+  const graphRef = useRef<Graph | null>(null);
+  graphRef.current = graph;
   const [dropped, setDropped] = useState<Edge[]>([]);
   const [stats, setStats] = useState<GraphStats | null>(null);
   const [solution, setSolution] = useState<Solution | null>(null);
@@ -79,7 +82,7 @@ export default function App() {
   const [layers, setLayers] = useState<Layers>(ALL);
   const [explain, setExplain] = useState(0); // 0 = apagado, 1..5 = paso
   const [playing, setPlaying] = useState(false);
-  const [mult, setMult] = useState(10); // reproducción ×N
+  const [mult, setMult] = useState(30); // reproducción ×N
   const [progress, setProgress] = useState(0);
   const [follow, setFollow] = useState(false);
   const [open, setOpen] = useState(true);
@@ -222,6 +225,9 @@ export default function App() {
   };
   useEffect(() => {
     const w = startWorker();
+    // si el worker se vuelve a crear (por ejemplo, al recargar el código) con un grafo ya en
+    // pantalla, se le pasa de nuevo; si no, diría "Primero genera el grafo"
+    if (graphRef.current) w.postMessage({ type: 'load', graph: graphRef.current, edit: true } satisfies WorkerRequest);
     return () => w.terminate();
   }, []);
   const send = (req: WorkerRequest, msg: string) => {
@@ -250,7 +256,7 @@ export default function App() {
     setProgress(0);
     setPlaying(false);
     // que el recorrido completo dure como mucho minuto y medio de animación
-    setMult(10);
+    setMult(30);
   }, [route]);
 
   useEffect(() => {
@@ -565,17 +571,45 @@ export default function App() {
 
   const reproductor = solution && (
               <>
-                <div className="fila reproductor">
-                  <button onClick={() => (progress >= route.total ? (seek(0), setPlaying(true)) : setPlaying(!playing))} title={playing ? 'Pausar' : 'Reproducir'}>
-                    {playing ? '⏸' : '▶'}
-                  </button>
-                  <button onClick={restart} title="Volver al inicio">
-                    ⟲
-                  </button>
-                  <input type="range" min={0} max={route.total} step={route.total / 2000} value={progress} onChange={(e) => seek(+e.target.value)} />
+                <div className="reproductor-caja">
+                  <div className="reproductor-botones">
+                    <button
+                      className={`reproducir ${playing ? 'on' : ''}`}
+                      onClick={() => (progress >= route.total ? (seek(0), setPlaying(true)) : setPlaying(!playing))}
+                    >
+                      {playing ? '⏸ Pausar' : progress > 0 && progress < route.total ? '▶ Seguir' : '▶ Ver al cartero recorrerla'}
+                    </button>
+                    <button onClick={restart} title="Volver al inicio" aria-label="Volver al inicio">
+                      ⟲
+                    </button>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={route.total}
+                    step={route.total / 2000}
+                    value={progress}
+                    onChange={(e) => seek(+e.target.value)}
+                    aria-label="Avance del recorrido"
+                  />
+                </div>
+                <div className="velocidad-rapida">
+                  <span className="etiqueta">¿En qué va el cartero?</span>
+                  <div className="chips">
+                    {PROMEDIOS.map((p) => (
+                      <button key={p.label} className={Math.abs(avg * 3.6 - p.kmh) < 0.01 ? 'on' : ''} onClick={() => setAvg(p.kmh / 3.6)}>
+                        {p.label} <small>{p.kmh} km/h</small>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="fila">
+                    <span className="etiqueta">Animación</span>
+                    <MultSelect value={mult} onChange={setMult} />
+                    <span className="ayuda">{multHint(mult)}</span>
+                  </div>
                 </div>
                 <details className="velocidades-box">
-                  <summary>Velocidad ({fmtSpeed(avg, unit)}) y esperas</summary>
+                  <summary>Más opciones: velocidad exacta y esperas en cruces</summary>
                 <div className="velocidades">
                   <div className="fila fondo promedio">
                     <span>Velocidad del vehículo</span>
@@ -588,18 +622,6 @@ export default function App() {
                       aria-label="Velocidad del vehículo"
                     />
                     <span>{unit === 'kmh' ? 'km/h' : 'm/s'}</span>
-                  </div>
-                  <div className="fila fondo">
-                    {PROMEDIOS.map((p) => (
-                      <button key={p.label} className={Math.abs(avg * 3.6 - p.kmh) < 0.01 ? 'on' : ''} onClick={() => setAvg(p.kmh / 3.6)}>
-                        {p.label} {p.kmh}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="fila fondo">
-                    <span>Reproducción</span>
-                    <MultSelect value={mult} onChange={setMult} />
-                    <span className="ayuda">{multHint(mult)}</span>
                   </div>
                   <div className="fila fondo promedio">
                     <span>Espera por cruce</span>
@@ -923,20 +945,17 @@ export default function App() {
           <Paso n={1} titulo="¿Qué zona va a recorrer?" ayuda="Elige un barrio de la lista o dibuja la zona en el mapa." estado={paso1} resumen={barrio ? `Barrio ${barrio}${area ? ` · ${km2.toLocaleString('es-CO', { maximumFractionDigits: 2 })} km²` : ''}` : area ? `Zona de ${km2.toLocaleString('es-CO', { maximumFractionDigits: 2 })} km²` : name}>
             <label className="campo">
               <span>Barrio de Barranquilla</span>
-              <select
+              <Escoger
                 value={barrio}
-                onFocus={cargarBarrios}
-                onPointerDown={cargarBarrios}
-                onChange={(e) => elegirBarrio(e.target.value)}
+                opciones={(barrios ?? []).map((b) => ({ value: b.n, label: b.n }))}
+                placeholder={barrios ? `Elige uno de los ${barrios.length} barrios…` : 'Elige un barrio…'}
+                titulo="Barrio de Barranquilla"
+                onAbrir={cargarBarrios}
+                onChange={elegirBarrio}
                 disabled={!!busy}
-              >
-                <option value="">{barrios ? `Elige uno de los ${barrios.length} barrios…` : 'Elige un barrio…'}</option>
-                {barrios?.map((b) => (
-                  <option key={b.n} value={b.n}>
-                    {b.n}
-                  </option>
-                ))}
-              </select>
+                buscar
+                cargando={!barrios}
+              />
             </label>
             {barrio && <p className="ayuda">Límite oficial del POT (Alcaldía de Barranquilla, datos.gov.co, CC BY-SA 4.0).</p>}
             <p className="separador">
@@ -960,10 +979,16 @@ export default function App() {
               >
                 Trazar calles
               </button>
-              <select
+              <Escoger
                 value=""
-                onChange={(e) => {
-                  const val = e.target.value;
+                opciones={[
+                  ...Object.keys(zonas).map((z) => ({ value: z, label: z, grupo: 'Ciudades' })),
+                  ...DEMOS.map((x) => ({ value: x.name, label: x.name, grupo: 'Sin internet (calles ya descargadas)' })),
+                  ...EJEMPLOS.map((x) => ({ value: x.name, label: x.name, grupo: 'Ejemplos de clase' })),
+                ]}
+                placeholder="Ejemplos y ciudades…"
+                titulo="Ejemplos y ciudades"
+                onChange={(val) => {
                   const zona = (zonas as Record<string, number[][]>)[val];
                   if (zona) onArea(zona);
                   const ej = EJEMPLOS.find((x) => x.name === val);
@@ -975,24 +1000,7 @@ export default function App() {
                   const demo = DEMOS.find((x) => x.name === val);
                   if (demo) loadDemo(demo.file);
                 }}
-              >
-                <option value="">Ejemplos y ciudades…</option>
-                <optgroup label="Ciudades">
-                  {Object.keys(zonas).map((z) => (
-                    <option key={z}>{z}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Sin internet (calles ya descargadas)">
-                  {DEMOS.map((x) => (
-                    <option key={x.file}>{x.name}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Ejemplos de clase">
-                  {EJEMPLOS.map((x) => (
-                    <option key={x.name}>{x.name}</option>
-                  ))}
-                </optgroup>
-              </select>
+              />
             </div>
             {trace && (
               <div className="trazado">

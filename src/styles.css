@@ -509,3 +509,125 @@ html.proyector .guia-in { zoom: 1.25; }
 .g-indice { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; padding: 10px 0; }
 .g-indice button { flex: none; white-space: nowrap; }
 .guia section { scroll-margin-top: 64px; }
+
+/* --- elegir de una lista en el celular: hoja que sube desde abajo --- */
+.panel .escoger-boton {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left;
+  padding: 10px 12px; font-size: 15px; border-radius: 8px;
+}
+.panel .herramientas .escoger-boton { grid-column: 1 / -1; }
+.escoger-boton span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.escoger-boton.vacio span { color: var(--muted); }
+.escoger-boton i { font-style: normal; color: var(--muted); font-size: 12px; }
+.hoja-fondo { position: fixed; inset: 0; z-index: 60; background: rgba(15, 23, 42, 0.45); display: flex; align-items: flex-end; animation: hoja-fondo 0.2s ease-out; }
+.hoja {
+  width: 100%; max-height: 86vh; display: flex; flex-direction: column; background: var(--bg); color: var(--fg);
+  border-radius: 18px 18px 0 0; box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.25); padding: 0 0 env(safe-area-inset-bottom);
+  animation: hoja-sube 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.hoja-asa { width: 44px; height: 5px; border-radius: 3px; background: var(--muted); opacity: 0.45; margin: 10px auto 4px; flex: none; }
+.hoja-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 16px 8px; flex: none; }
+.hoja-head h3 { margin: 0; font-size: 17px; }
+.hoja-head button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--chip); color: var(--fg); font-size: 15px; cursor: pointer; }
+.hoja-buscar { margin: 0 16px 8px; padding: 11px 14px; font-size: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--chip); color: var(--fg); flex: none; }
+.hoja-lista { list-style: none; margin: 0; padding: 0 8px 12px; overflow-y: auto; overscroll-behavior: contain; }
+.hoja-lista button {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left;
+  min-height: 50px; padding: 12px 12px; border: 0; border-radius: 10px; background: none; color: var(--fg); font-size: 16px; cursor: pointer;
+}
+.hoja-lista li + li button { border-top: 1px solid var(--line); border-radius: 0; }
+.hoja-lista button:active { background: var(--chip); }
+.hoja-lista button.on { color: var(--accent-text); font-weight: 600; }
+.hoja-lista button i { font-style: normal; color: var(--accent-text); }
+.hoja-grupo { margin: 14px 12px 4px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.hoja-nada { padding: 20px 12px; color: var(--muted); text-align: center; }
+@keyframes hoja-sube { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes hoja-fondo { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .hoja, .hoja-fondo { animation: none; } }
+
+/* velocidad a la vista (antes estaba escondida en un desplegable) */
+.velocidad-rapida { background: var(--chip); border-radius: 12px; padding: 10px 12px; margin: 10px 0 6px; }
+.velocidad-rapida .etiqueta { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.velocidad-rapida .fila .etiqueta { display: inline; margin: 0; }
+.velocidad-rapida .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+.panel .velocidad-rapida .chips button { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 7px 4px; background: var(--bg); font-size: 13.5px; }
+.velocidad-rapida .chips small { font-size: 11px; color: var(--muted); font-weight: 400; }
+.velocidad-rapida .fila { margin: 0; }
+.velocidad-rapida .ayuda { margin: 0; }
+.velocidades-box summary {
+  display: flex; align-items: center; gap: 6px; color: var(--accent-text); font-size: 13px; font-weight: 600; margin: 6px 0;
+  list-style: none;
+}
+.velocidades-box summary::-webkit-details-marker { display: none; }
+.velocidades-box summary::before { content: '⚙'; font-size: 14px; }
+.velocidades-box summary::after { content: '▾'; font-size: 11px; transition: transform 0.15s; }
+.velocidades-box[open] summary::after { transform: rotate(180deg); }
+
+/* --- reproducción: botón con texto en vez de solo iconos --- */
+.reproductor-caja { margin: 12px 0 4px; }
+.reproductor-botones { display: flex; gap: 6px; margin-bottom: 8px; }
+.panel .reproductor-botones .reproducir { flex: 1; font-weight: 600; padding: 9px 12px; background: var(--accent-soft); color: var(--accent-text); border-color: var(--accent); }
+.panel .reproductor-botones .reproducir.on { background: var(--chip); color: var(--fg); border-color: var(--line); }
+.panel .reproductor-botones button:last-child { width: 44px; font-size: 17px; }
+.reproductor-caja input[type='range'] { width: 100%; accent-color: var(--accent); }
+
+/* --- tablero menos apretado --- */
+.tablero-cuerpo > .tablero-zoom { left: 12px !important; right: auto !important; top: 12px !important; }
+.pasos.compacto { position: absolute; top: 12px; right: 12px; width: auto !important; max-height: none; padding: 0; background: none; z-index: 3; }
+.pasos.compacto .primario { width: auto; margin: 0; padding: 9px 16px !important; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); }
+.pasos.compacto .ayuda { background: var(--card); padding: 8px 12px; border-radius: 10px; margin: 0; max-width: 260px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15); }
+@media (max-width: 799px) {
+  .app:has(.panel.cerrado) .tablero { padding-bottom: 48px; }
+  .pasos.compacto { top: auto; bottom: 12px; right: 50%; transform: translateX(50%); }
+  .pasos.compacto .primario { font-size: 14px !important; white-space: nowrap; }
+  .tablero { padding-top: 52px; }
+}
+
+/* --- guía: el índice pegado arriba ya no tapa los títulos --- */
+.g-indice { top: 0; margin: 12px -20px 8px; padding: 10px 20px; box-shadow: 0 6px 8px -8px rgba(0, 0, 0, 0.3); }
+.guia section { scroll-margin-top: 72px; }
+@media (max-width: 799px) {
+  .g-indice { margin: 10px -16px 8px; padding: 8px 16px; }
+  .g-svg .g-txt, .g-svg .g-txt text { font-size: 19px; }
+  .g-svg .g-fuerte { font-size: 20px; }
+  .g-svg .g-cap { display: none; }
+}
+
+/* --- desplegables del panel: que se note que se pueden abrir --- */
+.panel details > summary {
+  display: flex; align-items: center; gap: 8px; list-style: none; cursor: pointer; user-select: none;
+  margin: 10px 0 4px; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--chip);
+  color: var(--fg); font-size: 13.5px; font-weight: 600; transition: border-color 0.15s;
+}
+.panel details > summary::-webkit-details-marker { display: none; }
+.panel details > summary:hover { border-color: var(--muted); }
+.panel details > summary::after { content: '▾'; margin-left: auto; font-size: 12px; color: var(--muted); transition: transform 0.15s; }
+.panel details[open] > summary::after { transform: rotate(180deg); }
+.panel details[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; margin-bottom: 0; }
+.panel details[open] > :not(summary):first-of-type { margin-top: 0; }
+.panel details[open] { border-radius: 10px; }
+.panel details[open] > summary ~ * { padding-left: 4px; padding-right: 4px; }
+.velocidades-box summary::before { content: '⚙'; font-size: 14px; color: var(--muted); }
+.velocidades-box summary { color: var(--fg) !important; }
+
+/* --- casillas del panel como interruptores grandes: toda la fila se puede tocar --- */
+.panel .check {
+  flex-direction: row-reverse; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 10px 12px; margin: 8px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--chip);
+  font-size: 13.5px; cursor: pointer; user-select: none; transition: border-color 0.15s;
+}
+.panel .check:hover { border-color: var(--muted); }
+.panel .check input[type='checkbox'] {
+  appearance: none; -webkit-appearance: none; flex: none; position: relative; margin: 0; cursor: pointer;
+  width: 44px !important; height: 26px !important; border-radius: 999px; background: var(--line); border: 1px solid var(--line);
+  transition: background 0.2s, border-color 0.2s;
+}
+.panel .check input[type='checkbox']::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); transition: transform 0.2s;
+}
+.panel .check input[type='checkbox']:checked { background: var(--accent); border-color: var(--accent); }
+.panel .check input[type='checkbox']:checked::after { transform: translateX(18px); }
+.panel .check input[type='checkbox']:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.panel details .check { background: var(--bg); }
+@media (prefers-reduced-motion: reduce) { .panel .check input[type='checkbox'], .panel .check input[type='checkbox']::after { transition: none; } }

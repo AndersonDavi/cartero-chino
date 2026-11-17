@@ -55,6 +55,8 @@ const ALL: Layers ={ grafo: true, impares: true, parejas: true, duplicadas: true
 
 export default function App() {
   const [view, setView] = useState<View>('plano');
+  const ultimoMapa = useRef<View>('plano'); // el botón Mapa vuelve al último tipo de mapa usado
+  if (MAPAS.includes(view)) ultimoMapa.current = view;
   const [guia, setGuia] = useState(() => location.hash === '#teoria');
   // la guía se puede abrir directo con #teoria en la dirección
   const abrirGuia = (on: boolean) => {
@@ -680,23 +682,10 @@ export default function App() {
       {guia && <Guia onClose={() => abrirGuia(false)} />}
 
       <nav className="vistas">
-        {/* Plano, aérea y 3D son la misma vista de mapa: van juntas en un solo selector */}
-        <label className={`vista-mapa ${MAPAS.includes(view) ? 'on' : ''}`}>
-          <select
-            value={MAPAS.includes(view) ? view : ''}
-            onChange={(e) => e.target.value && setView(e.target.value as View)}
-            aria-label="Vista de mapa"
-          >
-            <option value="" disabled hidden>
-              Mapa
-            </option>
-            {VIEWS.filter((v) => MAPAS.includes(v.id)).map((v) => (
-              <option key={v.id} value={v.id}>
-                Mapa · {v.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        {/* Plano, aérea y 3D son la misma vista de mapa: un solo botón y, debajo, cuál de las tres */}
+        <button className={MAPAS.includes(view) ? 'on' : ''} onClick={() => setView(ultimoMapa.current)}>
+          Mapa
+        </button>
         {VIEWS.filter((v) => !MAPAS.includes(v.id)).map((v) => (
           <button
             key={v.id}
@@ -713,6 +702,15 @@ export default function App() {
           Teoría
         </button>
       </nav>
+      {MAPAS.includes(view) && (
+        <div className="estilo-mapa" role="group" aria-label="Tipo de mapa">
+          {VIEWS.filter((v) => MAPAS.includes(v.id)).map((v) => (
+            <button key={v.id} className={view === v.id ? 'on' : ''} onClick={() => setView(v.id)}>
+              {v.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {viewGraph && view !== 'tablero' && view !== 'navegar' && (
         <div className="leyenda" aria-label="Qué significa cada color">

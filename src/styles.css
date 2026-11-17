@@ -469,14 +469,14 @@ html.proyector .guia-in { zoom: 1.25; }
 
 /* celular: hoja más alta, barra de vistas deslizable y sin el botón de fondo (está en Ajustes) */
 @media (max-width: 799px) {
-  .panel { width: auto; max-height: 58vh; }
+  .panel { width: auto; max-height: 52vh; }
   .vistas { overflow-x: auto; justify-content: flex-start; scrollbar-width: none; }
   .vistas::-webkit-scrollbar { display: none; }
   .vistas button { flex: 1 0 auto; }
   .vistas .fondo-rapido { display: none; }
-  .tablero { padding-bottom: calc(58vh + 8px); }
-  .aviso { bottom: calc(58vh + 12px); }
-  .panel:not(.cerrado) ~ .navbar { bottom: calc(58vh + 8px); }
+  .tablero { padding-bottom: calc(52vh + 8px); }
+  .aviso { bottom: calc(52vh + 12px); }
+  .panel:not(.cerrado) ~ .navbar { bottom: calc(52vh + 8px); }
   .panel section.paso-card { padding: 12px; }
   .panel button, .panel select { min-height: 40px; }
 }
@@ -491,18 +491,18 @@ html.proyector .guia-in { zoom: 1.25; }
   .tablero { padding-top: 64px; padding-left: 424px; }
   .tablero.vacio { padding-left: 440px; }
 }
-.vista-mapa { position: relative; display: inline-flex; align-items: center; border-radius: 999px; }
-.vista-mapa select {
-  appearance: none; -webkit-appearance: none; border: 0; background: none; color: var(--muted); cursor: pointer;
-  padding: 7px 26px 7px 12px; border-radius: 999px; font-size: 14px;
+/* tipo de mapa (plano, aérea, 3D): pequeño, en la esquina, para no tapar el mapa */
+.estilo-mapa {
+  position: absolute; z-index: 5; top: 60px; display: flex; gap: 1px; padding: 2px; border-radius: 999px;
+  background: var(--card); box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18);
 }
-.vista-mapa::after { content: '▾'; position: absolute; right: 10px; pointer-events: none; font-size: 11px; color: var(--muted); }
-.vista-mapa.on { background: var(--fg); }
-.vista-mapa.on select, .vista-mapa.on::after { color: var(--bg); }
-.vista-mapa select option { color: var(--fg); background: var(--bg); }
+.estilo-mapa button { border: 0; background: none; color: var(--muted); padding: 4px 10px; border-radius: 999px; cursor: pointer; font-size: 12px; min-height: 28px; }
+.estilo-mapa button.on { background: var(--accent-soft); color: var(--accent-text); font-weight: 600; }
+@media (min-width: 800px) {
+  .estilo-mapa { left: 424px; top: auto; bottom: 14px; }
+}
 @media (max-width: 799px) {
-  .vista-mapa { flex: 1 0 auto; justify-content: center; }
-  .vista-mapa select { font-size: 13px; width: 100%; text-align: center; }
+  .estilo-mapa { left: 8px; top: 52px; }
 }
 
 /* --- guía: índice en una sola fila que se desliza (no tapa los títulos) --- */

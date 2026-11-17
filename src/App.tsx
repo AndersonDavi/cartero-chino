@@ -86,6 +86,47 @@ export default function App() {
   const [progress, setProgress] = useState(0);
   const [follow, setFollow] = useState(true); // el mapa sigue al cartero mientras recorre
   const [open, setOpen] = useState(true);
+  const [alto, setAlto] = useState(false); // celular: la hoja del panel subida casi hasta arriba
+  const panelRef = useRef<HTMLElement>(null);
+  // arrastrar la barrita de la hoja: se suelta en la altura más cercana (cerrada, media o alta)
+  const arrastre = useRef<{ y: number; h: number; movio: boolean } | null>(null);
+  const asaDown = (e: React.PointerEvent) => {
+    const el = panelRef.current;
+    if (!el) return;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    arrastre.current = { y: e.clientY, h: el.getBoundingClientRect().height, movio: false };
+  };
+  const asaMove = (e: React.PointerEvent) => {
+    const a = arrastre.current;
+    const el = panelRef.current;
+    if (!a || !el) return;
+    const dy = a.y - e.clientY;
+    if (Math.abs(dy) > 6) a.movio = true;
+    if (!a.movio) return;
+    el.style.transition = 'none';
+    el.style.maxHeight = `${Math.max(40, Math.min(window.innerHeight * 0.9, a.h + dy))}px`;
+  };
+  const asaUp = () => {
+    const a = arrastre.current;
+    const el = panelRef.current;
+    arrastre.current = null;
+    if (!a || !el) return;
+    if (!a.movio) {
+      setOpen(!open);
+      setAlto(false);
+      return;
+    }
+    const h = el.getBoundingClientRect().height;
+    const vh = window.innerHeight;
+    const puntos: [number, () => void][] = [
+      [40, () => (setOpen(false), setAlto(false))],
+      [vh * 0.52, () => (setOpen(true), setAlto(false))],
+      [vh * 0.88, () => (setOpen(true), setAlto(true))],
+    ];
+    puntos.reduce((b, p) => (Math.abs(p[0] - h) < Math.abs(b[0] - h) ? p : b))[1]();
+    el.style.transition = '';
+    el.style.maxHeight = '';
+  };
   const [fondo, setFondo] = useState<Fondo>('completo');
   const [mode, setMode] = useState<'cartero' | 'ab'>('cartero');
   const [stops, setStops] = useState<(Punto | null)[]>([null, null]); // A, paradas intermedias y la última
@@ -834,8 +875,15 @@ export default function App() {
         );
       })()}
 
-      <aside className={`panel ${open ? '' : 'cerrado'} ${view === 'tablero' ? 'oculto' : ''}`}>
-        <button className="asa" onClick={() => setOpen(!open)} aria-label="Mostrar u ocultar panel">
+      <aside ref={panelRef} className={`panel ${open ? '' : 'cerrado'} ${open && alto ? 'alto' : ''} ${view === 'tablero' ? 'oculto' : ''}`}>
+        <button
+          className="asa"
+          onPointerDown={asaDown}
+          onPointerMove={asaMove}
+          onPointerUp={asaUp}
+          onPointerCancel={asaUp}
+          aria-label="Arrastra para subir o bajar el panel; toca para mostrarlo u ocultarlo"
+        >
           <span />
         </button>
         <div className="panel-body">

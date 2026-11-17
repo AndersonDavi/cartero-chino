@@ -701,3 +701,15 @@ html.proyector .guia-in { zoom: 1.25; }
 .opciones-grandes button span { font-size: 24px; line-height: 1; }
 .pasos-intro .secundario { width: 100%; margin-top: 8px; border: 1px solid var(--line); background: var(--chip); color: var(--fg); border-radius: 10px; padding: 10px; cursor: pointer; font-size: 14px; }
 .pasos-intro .primario:disabled { opacity: 0.6; }
+
+/* --- hoja del panel en el celular: se arrastra desde la barrita --- */
+@media (max-width: 799px) {
+  .panel { transition: max-height 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .panel.alto { max-height: 88vh; }
+  .asa { touch-action: none; cursor: grab; padding: 12px 0 8px; }
+  .asa:active { cursor: grabbing; }
+}
+
+/* --- contraste: todo botón azul lleva letra blanca --- */
+.primario, .pasos-nav .primario, .pasos .primario, .pasos-intro .primario { color: var(--accent-fg) !important; }
+.primario:disabled { color: var(--muted) !important; }

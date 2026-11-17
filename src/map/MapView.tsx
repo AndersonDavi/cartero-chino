@@ -384,7 +384,7 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
     if (ps.length >= 2 && !props.solution) {
       const lats = ps.map((p) => p[0]);
       const lons = ps.map((p) => p[1]);
-      m.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]], { padding: 120, maxZoom: 16, duration: 600 });
+      m.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]], { padding: zonaVisible(40), maxZoom: 16, duration: 600 });
     } else if (ps.length === 1) {
       m.easeTo({ center: ll(ps[0]), zoom: Math.max(m.getZoom(), 14), duration: 600 });
     }
@@ -449,9 +449,14 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
     m.setPaintProperty('edges', 'line-opacity', claro ? 0.9 : 0.75);
   }, [ready, props.view, props.fondo]);
 
+  const vistaAnterior = useRef<View>(props.view);
   useEffect(() => {
     const m = map.current;
+    const antes = vistaAnterior.current;
+    vistaAnterior.current = props.view;
     if (!ready || !loaded.current || !m || props.view === 'tablero') return;
+    // en el tablero el mapa queda oculto (tamaño 0): al volver se mide de nuevo antes de mover la cámara
+    m.resize();
     const noPad = { top: 0, bottom: 0, left: 0, right: 0 };
     // la aérea se ve siempre desde arriba; el plano empieza desde arriba pero se puede inclinar
     // (sirve para ver en perspectiva sin los edificios 3D)
@@ -463,9 +468,15 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
       manualBearing.current = false;
       latest.current.onManualRotate(false);
       lastTick.current = 0;
-      m.easeTo({ pitch: 62, zoom: Math.max(m.getZoom(), 17), duration: 700 });
+      // se acerca al cartero (si ya está en el mapa) aunque la animación esté en pausa
+      const c = marker.current?.getLngLat();
+      m.easeTo({ pitch: 62, zoom: Math.max(m.getZoom(), 17), duration: 700, ...(c ? { center: c, padding: zonaVisible() } : {}) });
     } else m.easeTo({ pitch: 0, bearing: 0, padding: noPad, duration: 900 });
-    setTimeout(() => m.resize(), 0);
+    setTimeout(() => {
+      m.resize();
+      // viniendo del tablero, se vuelve a encuadrar la zona (si no, queda muy alejada)
+      if (antes === 'tablero' && props.view !== 'navegar') fitGraph();
+    }, 0);
   }, [ready, props.view]);
 
   // --- área seleccionada ---
@@ -560,10 +571,9 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
       s = Math.min(s, v.lat);
       n = Math.max(n, v.lat);
     }
-    const mobile = window.innerWidth < 800;
     m.fitBounds([[w, s], [e, n]] as LngLatBoundsLike, {
-      padding: mobile ? { top: 70, bottom: window.innerHeight * 0.45, left: 20, right: 20 } : { top: 60, bottom: 40, left: 420, right: 60 },
-      maxZoom: 18,
+      padding: zonaVisible(),
+      maxZoom: 17.5,
       duration: 800,
     });
   }
@@ -601,8 +611,10 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
         if (!manual.current && !interacting.current && !userZoom.current) {
           m.jumpTo(manualBearing.current ? { center: ll(pos.p), padding } : { center: ll(pos.p), bearing: heading.current, padding });
         }
-      } else if (p.follow && !userZoom.current && !interacting.current) {
-        m.jumpTo({ center: ll(pos.p) });
+      } else if (p.follow && !userZoom.current && !interacting.current && !m.isEasing()) {
+        // (si el mapa se está acercando a la zona, se espera a que termine)
+        // el cartero queda en el centro de la parte visible (no detrás del panel)
+        m.jumpTo({ center: ll(pos.p), padding: zonaVisible() });
       }
     },
     fit: fitGraph,
@@ -616,6 +628,20 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
 
   return <div ref={box} className="map" style={{ display: props.view === 'tablero' ? 'none' : 'block' }} />;
 });
+
+/**
+ * Márgenes de la parte del mapa que se ve: debajo de las pestañas y, en el celular,
+ * encima de la hoja del panel; en escritorio, a la derecha del panel.
+ */
+function zonaVisible(extra = 0) {
+  const h = window.innerHeight;
+  const rect = (sel: string) => document.querySelector(sel)?.getBoundingClientRect();
+  const panel = document.querySelector('.panel');
+  const pr = panel && getComputedStyle(panel).display !== 'none' ? panel.getBoundingClientRect() : null;
+  const top = Math.max(rect('.vistas')?.bottom ?? 0, rect('.estilo-mapa')?.bottom ?? 0, window.innerWidth < 800 ? 90 : 56) + 24 + extra;
+  if (window.innerWidth < 800) return { top, bottom: (pr ? Math.max(0, h - pr.top) : 0) + 24 + extra, left: 28 + extra, right: 28 + extra };
+  return { top, bottom: 40 + extra, left: (pr ? pr.right : 0) + 40 + extra, right: 70 + extra };
+}
 
 /** Capas de vértices y aristas del grafo (las aristas llevan u y v para resaltar). */
 function graphData(g: Graph) {

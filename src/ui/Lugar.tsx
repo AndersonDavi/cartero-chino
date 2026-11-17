@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LatLon } from '../core/types';
+import { HojaBase, useEsCelular } from './Escoger';
+import { Icono } from './Iconos';
 
 export interface Punto {
   name: string;
@@ -44,6 +46,8 @@ export function Lugar(props: {
 }) {
   const [q, setQ] = useState('');
   const [list, setList] = useState<Sugerencia[]>([]);
+  const celular = useEsCelular();
+  const [hoja, setHoja] = useState(false); // celular: el buscador se abre en una hoja desde abajo
   const [error, setError] = useState('');
   const abort = useRef<AbortController | null>(null);
 
@@ -68,6 +72,96 @@ export function Lugar(props: {
     return () => clearTimeout(id);
   }, [q]);
 
+  const nombre = props.role === 'inicio' ? 'Origen' : props.role === 'fin' ? 'Destino' : `Parada ${props.letra}`;
+  const placeholder =
+    props.role === 'inicio' ? 'Desde… (ej. Estadio Metropolitano)' : props.role === 'fin' ? 'Hasta… (ej. Portal del Prado)' : 'Parada… (ej. Parque Venezuela)';
+  const elegir = (s: Sugerencia) => {
+    props.onChange(s);
+    setQ('');
+    setList([]);
+    setHoja(false);
+  };
+
+  if (celular) {
+    return (
+      <div className="lugar">
+        <div className="lugar-fila">
+          <span className={`lugar-letra ${props.role}`}>{props.letra}</span>
+          <button
+            type="button"
+            className={`lugar-campo ${props.value ? 'lleno' : ''} ${props.picking ? 'eligiendo' : ''}`}
+            onClick={() => setHoja(true)}
+          >
+            <Icono nombre={props.value ? 'pin' : 'buscar'} size={18} />
+            <span>{props.picking ? 'Toca el mapa para elegir…' : (props.value?.name ?? placeholder)}</span>
+          </button>
+          {(props.onUp || props.onDown) && (
+            <span className="lugar-orden">
+              <button onClick={props.onUp} disabled={!props.onUp} title="Subir en el orden">
+                ↑
+              </button>
+              <button onClick={props.onDown} disabled={!props.onDown} title="Bajar en el orden">
+                ↓
+              </button>
+            </span>
+          )}
+          {props.onRemove && (
+            <button className="lugar-quitar" onClick={props.onRemove} title="Quitar esta parada">
+              −
+            </button>
+          )}
+        </div>
+        {hoja && (
+          <HojaBase titulo={`${nombre} (${props.letra})`} onCerrar={() => setHoja(false)}>
+            <input className="hoja-buscar" type="search" autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder} aria-label={nombre} />
+            <div className="hoja-atajos">
+              {props.onGps && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHoja(false);
+                    props.onGps?.();
+                  }}
+                >
+                  <Icono nombre="ubicacion" /> Mi ubicación
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setHoja(false);
+                  if (!props.picking) props.onPick();
+                }}
+              >
+                <Icono nombre="pin" /> Elegir en el mapa
+              </button>
+              {props.value && (
+                <button type="button" onClick={() => props.onChange(null)}>
+                  ✕ Quitar
+                </button>
+              )}
+            </div>
+            <ul className="hoja-lista">
+              {q.trim().length < 3 && <li className="hoja-nada">Escribe al menos 3 letras para buscar en Barranquilla y Soledad.</li>}
+              {q.trim().length >= 3 && error && <li className="hoja-nada">{error}</li>}
+              {list.map((s, i) => (
+                <li key={i}>
+                  <button type="button" className="hoja-lugar" onClick={() => elegir(s)}>
+                    <Icono nombre="pin" />
+                    <span>
+                      <b>{s.name}</b>
+                      {s.detail && <small>{s.detail}</small>}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </HojaBase>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="lugar">
       <div className="lugar-fila">
@@ -80,8 +174,8 @@ export function Lugar(props: {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={props.role === 'inicio' ? 'Desde… (ej. Estadio Metropolitano)' : props.role === 'fin' ? 'Hasta… (ej. Portal del Prado)' : 'Parada… (ej. Parque Venezuela)'}
-            aria-label={props.role === 'inicio' ? 'Origen' : props.role === 'fin' ? 'Destino' : `Parada ${props.letra}`}
+            placeholder={placeholder}
+            aria-label={nombre}
           />
         )}
         {(props.onUp || props.onDown) && (
@@ -102,9 +196,13 @@ export function Lugar(props: {
       </div>
       {!props.value && (
         <div className="lugar-acciones">
-          {props.onGps && <button onClick={props.onGps}>📍 Mi ubicación</button>}
+          {props.onGps && (
+            <button onClick={props.onGps}>
+              <Icono nombre="ubicacion" size={16} /> Mi ubicación
+            </button>
+          )}
           <button className={props.picking ? 'on' : ''} onClick={props.onPick}>
-            {props.picking ? 'Toca el mapa…' : 'Elegir en el mapa'}
+            <Icono nombre="pin" size={16} /> {props.picking ? 'Toca el mapa…' : 'Elegir en el mapa'}
           </button>
         </div>
       )}
@@ -112,13 +210,7 @@ export function Lugar(props: {
         <ul className="lugar-lista">
           {list.map((s, i) => (
             <li key={i}>
-              <button
-                onClick={() => {
-                  props.onChange(s);
-                  setQ('');
-                  setList([]);
-                }}
-              >
+              <button onClick={() => elegir(s)}>
                 <b>{s.name}</b>
                 {s.detail && <span>{s.detail}</span>}
               </button>

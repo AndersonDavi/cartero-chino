@@ -559,7 +559,6 @@ html.proyector .guia-in { zoom: 1.25; }
   list-style: none;
 }
 .velocidades-box summary::-webkit-details-marker { display: none; }
-.velocidades-box summary::before { content: '⚙'; font-size: 14px; }
 .velocidades-box summary::after { content: '▾'; font-size: 11px; transition: transform 0.15s; }
 .velocidades-box[open] summary::after { transform: rotate(180deg); }
 
@@ -607,7 +606,6 @@ html.proyector .guia-in { zoom: 1.25; }
 .panel details[open] > :not(summary):first-of-type { margin-top: 0; }
 .panel details[open] { border-radius: 10px; }
 .panel details[open] > summary ~ * { padding-left: 4px; padding-right: 4px; }
-.velocidades-box summary::before { content: '⚙'; font-size: 14px; color: var(--muted); }
 .velocidades-box summary { color: var(--fg) !important; }
 
 /* --- casillas del panel como interruptores grandes: toda la fila se puede tocar --- */
@@ -713,3 +711,31 @@ html.proyector .guia-in { zoom: 1.25; }
 /* --- contraste: todo botón azul lleva letra blanca --- */
 .primario, .pasos-nav .primario, .pasos .primario, .pasos-intro .primario { color: var(--accent-fg) !important; }
 .primario:disabled { color: var(--muted) !important; }
+
+/* --- iconos SVG (en vez de emojis) --- */
+.icono { flex: none; vertical-align: -4px; }
+.lugar-acciones button, .paradas-acciones button, .hoja-atajos button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.velocidades-box summary .icono { color: var(--muted); }
+.panel .opciones-grandes button { gap: 6px; }
+.opciones-grandes .icono { color: var(--muted); }
+.opciones-grandes button.on .icono { color: var(--accent-text); }
+
+/* --- Ir de A a B en el celular: el campo abre una hoja con buscador --- */
+.panel .lugar-campo {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; text-align: left;
+  padding: 11px 12px; font-size: 15px; border-radius: 10px; background: var(--chip); color: var(--muted);
+}
+.lugar-campo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel .lugar-campo.lleno { color: var(--fg); background: var(--accent-soft); border-color: var(--accent); }
+.panel .lugar-campo.lleno .icono { color: var(--accent-text); }
+.panel .lugar-campo.eligiendo { border-color: var(--accent); border-style: dashed; color: var(--accent-text); }
+.hoja-atajos { display: flex; gap: 8px; padding: 0 16px 10px; flex-wrap: wrap; flex: none; }
+.hoja-atajos button {
+  flex: 1 1 auto; border: 1px solid var(--line); background: var(--chip); color: var(--fg); border-radius: 12px;
+  padding: 10px 12px; font-size: 14px; cursor: pointer; min-height: 44px;
+}
+.hoja-atajos .icono { color: var(--accent-text); }
+.hoja-lista .hoja-lugar { justify-content: flex-start; align-items: flex-start; }
+.hoja-lugar .icono { margin-top: 2px; color: var(--muted); }
+.hoja-lugar span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.hoja-lugar small { font-size: 12.5px; color: var(--muted); }

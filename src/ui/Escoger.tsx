@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 export interface Opcion {
@@ -123,28 +123,17 @@ function Hoja({
   const [q, setQ] = useState('');
   const lista = useRef<HTMLUListElement>(null);
   useEffect(() => {
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && onCerrar();
-    window.addEventListener('keydown', esc);
     // la opción elegida queda a la vista al abrir
     lista.current?.querySelector('.on')?.scrollIntoView({ block: 'center' });
-    return () => window.removeEventListener('keydown', esc);
-  }, [onCerrar]);
+  }, []);
   const visibles = useMemo(() => {
     const t = norm(q.trim());
     return t ? opciones.filter((o) => norm(o.label).includes(t)) : opciones;
   }, [q, opciones]);
 
   let grupo: string | undefined;
-  return createPortal(
-    <div className="hoja-fondo" onClick={onCerrar}>
-      <div className="hoja" role="dialog" aria-label={titulo} onClick={(e) => e.stopPropagation()}>
-        <div className="hoja-asa" />
-        <header className="hoja-head">
-          <h3>{titulo}</h3>
-          <button type="button" onClick={onCerrar} aria-label="Cerrar">
-            ✕
-          </button>
-        </header>
+  return (
+    <HojaBase titulo={titulo} onCerrar={onCerrar}>
         {buscar && (
           <input className="hoja-buscar" type="search" placeholder="Buscar…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar" />
         )}
@@ -165,6 +154,28 @@ function Hoja({
             );
           })}
         </ul>
+    </HojaBase>
+  );
+}
+
+/** Hoja que sube desde abajo (celular): fondo oscuro, barrita, título y botón de cerrar. */
+export function HojaBase({ titulo, onCerrar, children }: { titulo: string; onCerrar(): void; children: ReactNode }) {
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && onCerrar();
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [onCerrar]);
+  return createPortal(
+    <div className="hoja-fondo" onClick={onCerrar}>
+      <div className="hoja" role="dialog" aria-label={titulo} onClick={(e) => e.stopPropagation()}>
+        <div className="hoja-asa" />
+        <header className="hoja-head">
+          <h3>{titulo}</h3>
+          <button type="button" onClick={onCerrar} aria-label="Cerrar">
+            ✕
+          </button>
+        </header>
+        {children}
       </div>
     </div>,
     document.body,

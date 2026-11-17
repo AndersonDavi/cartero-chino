@@ -13,6 +13,7 @@ import { Teoria, EXPLICAR } from './ui/Teoria';
 import { Guia } from './ui/Guia';
 import { Contador, Paso, type EstadoPaso } from './ui/Paso';
 import { Escoger } from './ui/Escoger';
+import { Icono } from './ui/Iconos';
 import { fmt, fromMs, toMs, type Unit } from './ui/format';
 import { Lugar, type Punto } from './ui/Lugar';
 import { exportProject, fileName, importProject, makeProject, parseProject, type Proyecto } from './ui/proyecto';
@@ -650,7 +651,9 @@ export default function App() {
                   </div>
                 </div>
                 <details className="velocidades-box">
-                  <summary>Más opciones: velocidad exacta y esperas en cruces</summary>
+                  <summary>
+                    <Icono nombre="ajustes" size={18} /> Más opciones: velocidad exacta y esperas en cruces
+                  </summary>
                 <div className="velocidades">
                   <div className="fila fondo promedio">
                     <span>Velocidad del vehículo</span>
@@ -969,11 +972,11 @@ export default function App() {
               </div>
               <div className="paradas-acciones">
                 <button disabled={stops.length >= LETRAS.length} onClick={() => setStops((s) => [...s, null])} title="Agrega una parada al final (pasa a ser el destino)">
-                  + Agregar parada
+                  <Icono nombre="mas" size={18} /> Agregar parada
                 </button>
                 {stops.length === 2 && (
                   <button onClick={() => setStops((s) => [s[1], s[0]])} title="Intercambiar origen y destino">
-                    ⇅ Intercambiar A y B
+                    <Icono nombre="intercambiar" size={18} /> Intercambiar
                   </button>
                 )}
               </div>
@@ -1000,8 +1003,8 @@ export default function App() {
               <div className="opciones-grandes" role="group" aria-label="Cómo va">
                 {(
                   [
-                    [false, '🚶', 'A pie'],
-                    [true, '🚗', 'Carro o moto'],
+                    [false, 'peaton', 'A pie'],
+                    [true, 'carro', 'Carro o moto'],
                   ] as const
                 ).map(([v, icono, label]) => (
                   <button
@@ -1014,7 +1017,7 @@ export default function App() {
                       setWaitTurn(v ? 8 : 0);
                     }}
                   >
-                    <span aria-hidden="true">{icono}</span>
+                    <Icono nombre={icono} size={28} />
                     {label}
                   </button>
                 ))}

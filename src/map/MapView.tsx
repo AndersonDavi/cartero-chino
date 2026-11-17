@@ -386,7 +386,7 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
       const lons = ps.map((p) => p[1]);
       m.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]], { padding: zonaVisible(40), maxZoom: 16, duration: 600 });
     } else if (ps.length === 1) {
-      m.easeTo({ center: ll(ps[0]), zoom: Math.max(m.getZoom(), 14), duration: 600 });
+      m.easeTo({ center: ll(ps[0]), zoom: Math.max(m.getZoom(), 15), duration: 600, padding: zonaVisible() });
     }
   }, [ready, props.points.map((x) => `${x.label}${x.p}`).join('|')]);
 
@@ -572,7 +572,7 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
       n = Math.max(n, v.lat);
     }
     m.fitBounds([[w, s], [e, n]] as LngLatBoundsLike, {
-      padding: zonaVisible(),
+      padding: zonaVisible(16), // un poco más de aire por los pines A y B
       maxZoom: 17.5,
       duration: 800,
     });

@@ -635,12 +635,21 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
  */
 function zonaVisible(extra = 0) {
   const h = window.innerHeight;
-  const rect = (sel: string) => document.querySelector(sel)?.getBoundingClientRect();
   const panel = document.querySelector('.panel');
   const pr = panel && getComputedStyle(panel).display !== 'none' ? panel.getBoundingClientRect() : null;
-  const top = Math.max(rect('.vistas')?.bottom ?? 0, rect('.estilo-mapa')?.bottom ?? 0, window.innerWidth < 800 ? 90 : 56) + 24 + extra;
-  if (window.innerWidth < 800) return { top, bottom: (pr ? Math.max(0, h - pr.top) : 0) + 24 + extra, left: 28 + extra, right: 28 + extra };
-  return { top, bottom: 40 + extra, left: (pr ? pr.right : 0) + 40 + extra, right: 70 + extra };
+  // las barras flotantes (pestañas y Plano/Aérea/3D) tapan arriba o abajo según dónde estén:
+  // en el celular van arriba; en escritorio el estilo del mapa va abajo
+  let arriba = window.innerWidth < 800 ? 90 : 56;
+  let abajo = 0;
+  for (const sel of ['.vistas', '.estilo-mapa']) {
+    const r = document.querySelector(sel)?.getBoundingClientRect();
+    if (!r || r.height === 0) continue;
+    if (r.top + r.height / 2 < h / 2) arriba = Math.max(arriba, r.bottom);
+    else abajo = Math.max(abajo, h - r.top);
+  }
+  const top = arriba + 24 + extra;
+  if (window.innerWidth < 800) return { top, bottom: Math.max(pr ? h - pr.top : 0, abajo) + 24 + extra, left: 28 + extra, right: 28 + extra };
+  return { top, bottom: Math.max(40, abajo + 24) + extra, left: (pr ? pr.right : 0) + 40 + extra, right: 70 + extra };
 }
 
 /** Capas de vértices y aristas del grafo (las aristas llevan u y v para resaltar). */

@@ -48,14 +48,28 @@ export function Paso({
 }
 
 /** Selector de cantidad con − y + (más fácil de tocar en el celular que un campo numérico). */
-export function Contador({ value, min, max, onChange, label }: { value: number; min: number; max: number; onChange: (v: number) => void; label: string }) {
+export function Contador({
+  value,
+  min,
+  max,
+  onChange,
+  label,
+  disabled = false,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  onChange: (v: number) => void;
+  label: string;
+  disabled?: boolean;
+}) {
   return (
     <div className="contador" role="group" aria-label={label}>
-      <button type="button" onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min} aria-label="Uno menos">
+      <button type="button" onClick={() => onChange(Math.max(min, value - 1))} disabled={disabled || value <= min} aria-label="Uno menos">
         −
       </button>
       <span aria-live="polite">{value}</span>
-      <button type="button" onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max} aria-label="Uno más">
+      <button type="button" onClick={() => onChange(Math.min(max, value + 1))} disabled={disabled || value >= max} aria-label="Uno más">
         +
       </button>
     </div>

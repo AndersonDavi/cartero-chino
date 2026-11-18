@@ -168,6 +168,12 @@ export default function App() {
   const [barrio, setBarrio] = useState('');
   const [carteros, setCarteros] = useState(1); // varios carteros: el área se reparte en sectores
   const [sectores, setSectores] = useState<Sector[] | null>(null);
+  // la ruta de un cartero y los sectores de varios nunca quedan en pantalla a la vez ni
+  // con un número de carteros distinto al del contador: lo que cambia el problema los borra
+  const borrarResultado = () => {
+    setSolution(null);
+    setSectores(null);
+  };
   const autoSolve = useRef(false); // al elegir un barrio: preparar el grafo y calcular la ruta de una vez
   const cargarBarrios = () => {
     if (barrios) return;
@@ -461,7 +467,7 @@ export default function App() {
     }
     setUndo((u) => [...u.slice(-49), graph]);
     setGraph(next);
-    setSolution(null);
+    borrarResultado();
     if (start >= next.vertices.length) setStart(0);
     worker.current!.postMessage({ type: 'load', graph: next, edit: true } satisfies WorkerRequest);
   };
@@ -470,7 +476,7 @@ export default function App() {
     if (!prev) return;
     setUndo((u) => u.slice(0, -1));
     setGraph(prev);
-    setSolution(null);
+    borrarResultado();
     worker.current!.postMessage({ type: 'load', graph: prev, edit: true } satisfies WorkerRequest);
   };
 
@@ -498,7 +504,7 @@ export default function App() {
     if (busy) cancel();
     setError(null);
     setGraph(null);
-    setSolution(null);
+    borrarResultado();
     setStats(null);
     setDropped([]);
     setArea(null);
@@ -516,7 +522,7 @@ export default function App() {
     if (m === mode) return;
     setMode(m);
     setGraph(null);
-    setSolution(null);
+    borrarResultado();
     setStats(null);
     setArea(null);
     setDrawMode(null);
@@ -581,7 +587,7 @@ export default function App() {
     setArea(ring);
     setDrawMode(null);
     setGraph(null);
-    setSolution(null);
+    borrarResultado();
     setStats(null);
   };
 
@@ -1228,7 +1234,17 @@ export default function App() {
                 <b>Carteros</b>
                 <span className="ayuda">{carteros > 1 ? 'La zona se reparte en sectores parejos, uno por cartero.' : 'Uno solo recorre toda la zona.'}</span>
               </div>
-              <Contador value={carteros} min={1} max={20} onChange={setCarteros} label="Número de carteros" />
+              <Contador
+                value={carteros}
+                min={1}
+                max={20}
+                disabled={!!busy}
+                onChange={(n) => {
+                  setCarteros(n);
+                  borrarResultado();
+                }}
+                label="Número de carteros"
+              />
             </div>
             {!isExample && (
               <label className="check">

@@ -713,6 +713,7 @@ export default function App() {
         start={start}
         layers={layers}
         follow={follow}
+        playing={playing}
         drawMode={drawMode}
         onArea={onArea}
         onPickStart={pickStart}

@@ -32,6 +32,7 @@ interface Props {
   start: number;
   layers: Layers;
   follow: boolean;
+  playing: boolean; // la animación está corriendo (solo entonces la cámara sigue al cartero)
   drawMode: 'rectangle' | 'polygon' | null;
   onArea(ring: number[][]): void;
   onPickStart(v: number): void;
@@ -76,6 +77,9 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
   const lastTick = useRef(0);
   const userZoom = useRef(false); // el usuario está haciendo zoom (rueda o pellizco)
   const lastIdx = useRef(-1);
+  // el usuario movió el mapa (arrastre, zoom, giro): desde ahí no se le vuelve a encuadrar ni
+  // a seguir al cartero hasta que haga algo que lo pida (otra zona, darle a reproducir)
+  const libre = useRef(false);
   latest.current = props;
   const [ready, setReady] = useState(false);
   // con recarga en caliente el mapa se recrea y `ready` puede seguir en true un
@@ -103,6 +107,9 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
     window.addEventListener('pointerup', () => (interacting.current = false));
     window.addEventListener('pointercancel', () => (interacting.current = false));
     cont.addEventListener('wheel', () => busyFor(400), { capture: true, passive: true });
+    m.on('movestart', (e) => {
+      if (e.originalEvent) libre.current = true;
+    });
     m.on('zoomstart', (e) => e.originalEvent && busyFor(700)); // botones + y −
     m.on('zoomend', (e) => e.originalEvent && busyFor(250));
     // En navegar: girar o inclinar a mano deja ese ángulo (sigue al cartero); arrastrar el
@@ -484,6 +491,11 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
     if (!ready || !loaded.current) return;
     const ring = props.area;
     src('area').setData(fc(ring ? [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } }] : []));
+    // una zona nueva (un barrio, un dibujo): se encuadra apenas se elige, sin esperar las calles
+    if (ring?.length) {
+      libre.current = false;
+      fitGraph();
+    }
   }, [ready, props.area]);
 
   // --- varios carteros ---
@@ -509,8 +521,16 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
   }, [ready, props.graph, props.dropped]);
 
   useEffect(() => {
-    if (ready && loaded.current) fitGraph();
+    if (!ready || !loaded.current) return;
+    // un grafo sin zona dibujada (un ejemplo, un archivo) también es una zona nueva
+    if (!latest.current.area?.length) libre.current = false;
+    fitGraph();
   }, [ready, props.fitKey]);
+
+  // darle a reproducir o activar "seguir al cartero" vuelve a dejar que la cámara lo siga
+  useEffect(() => {
+    if (props.playing && props.follow) libre.current = false;
+  }, [props.playing, props.follow]);
 
   // --- solución: parejas, duplicadas y ruta completa ---
   useEffect(() => {
@@ -560,17 +580,24 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
     return map.current!.getSource(id) as GeoJSONSource;
   }
 
+  // Encuadra la zona (el área marcada y sus calles) en la parte visible del mapa. Si el
+  // usuario ya movió el mapa no lo toca. Con el área y las calles juntas, el encuadre de
+  // cuando se elige la zona y el de cuando llegan las calles es el mismo: no da saltos.
   function fitGraph() {
     const g = latest.current.graph;
+    const ring = latest.current.area;
     const m = map.current;
-    if (!g || !m || g.vertices.length === 0) return;
+    if (!m || libre.current) return;
     let [w, s, e, n] = [180, 90, -180, -90];
-    for (const v of g.vertices) {
-      w = Math.min(w, v.lon);
-      e = Math.max(e, v.lon);
-      s = Math.min(s, v.lat);
-      n = Math.max(n, v.lat);
-    }
+    const add = (lon: number, lat: number) => {
+      w = Math.min(w, lon);
+      e = Math.max(e, lon);
+      s = Math.min(s, lat);
+      n = Math.max(n, lat);
+    };
+    ring?.forEach(([lon, lat]) => add(lon, lat));
+    g?.vertices.forEach((v) => add(v.lon, v.lat));
+    if (w > e) return;
     m.fitBounds([[w, s], [e, n]] as LngLatBoundsLike, {
       padding: zonaVisible(16), // un poco más de aire por los pines A y B
       maxZoom: 17.5,
@@ -611,7 +638,7 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
         if (!manual.current && !interacting.current && !userZoom.current) {
           m.jumpTo(manualBearing.current ? { center: ll(pos.p), padding } : { center: ll(pos.p), bearing: heading.current, padding });
         }
-      } else if (p.follow && !userZoom.current && !interacting.current && !m.isEasing()) {
+      } else if (p.playing && p.follow && !libre.current && !userZoom.current && !interacting.current && !m.isEasing()) {
         // (si el mapa se está acercando a la zona, se espera a que termine)
         // el cartero queda en el centro de la parte visible (no detrás del panel)
         m.jumpTo({ center: ll(pos.p), padding: zonaVisible() });
